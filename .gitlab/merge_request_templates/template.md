@@ -6,12 +6,14 @@ A small summary of what the merge request contains...
 
 - [ ]    New feature (non-breaking change which adds functionality)
 - [ ]    Breaking change (fix or feature that would cause existing functionality to change)
-- [ ] Fix
 
 ## Related merge requests
 
-1. ...
+1. Paste links here....
 
-
+## Related issues
+Fixes #....
+Related to #....
 
 /target develop
+/label "To Do"
