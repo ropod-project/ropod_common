@@ -15,10 +15,11 @@ ZYRE_SLEEP_TIME = 0.250  # type: float
 
 class PyreBaseCommunicator(pyre.Pyre):
     def __init__(self, node_name, groups, message_types, verbose=False,
-                 interface=None):
+                 interface=None, acknowledge=False):
         super(PyreBaseCommunicator, self).__init__(name=node_name)
 
         self.group_names = groups
+        self.acknowledge = acknowledge
 
         assert isinstance(message_types, list)
         self.message_types = message_types
@@ -107,7 +108,7 @@ class PyreBaseCommunicator(pyre.Pyre):
                         print("Peer Name: ", zyre_msg.peer_name)
 
                     if zyre_msg.msg_type == "SHOUT":
-                        zyre_msg.update(group_name=self.received_msg.pop(0))
+                        zyre_msg.update(group_name=self.received_msg.pop(0).decode('utf-8'))
                         if self.verbose:
                             print("Group: ", zyre_msg.group_name)
                     elif zyre_msg.msg_type == "ENTER":
@@ -143,6 +144,8 @@ class PyreBaseCommunicator(pyre.Pyre):
                         print("Content: ", zyre_msg.msg_content)
 
                     if zyre_msg.msg_type == "SHOUT" or zyre_msg.msg_type == "WHISPER":
+                        if self.acknowledge:
+                            self.send_acknowledgment(zyre_msg)
                         self.receive_msg_cb(zyre_msg.msg_content)
 
             except (KeyboardInterrupt, SystemExit):
@@ -223,6 +226,43 @@ class PyreBaseCommunicator(pyre.Pyre):
                     super(PyreBaseCommunicator, self).whisper(peer_uuid, message)
                 time.sleep(ZYRE_SLEEP_TIME)
 
+    def send_acknowledgment(self, zyre_msg):
+        """
+        This is a ROPOD-specific function to send acknowledgements to shouted and whispered messages defined in the
+        node's constructor.
+
+        :param zyre_msg: zyre_msg which contains the message type, peer, group, and contents
+        """
+
+        if zyre_msg.msg_type == "SHOUT" and zyre_msg.group_name in self.own_groups():
+            acknowledge = True
+        elif zyre_msg.msg_type == "WHISPER":
+            acknowledge = True
+        else:
+            acknowledge = False
+        contents = self.convert_zyre_msg_to_dict(zyre_msg.msg_content)
+        ropod_msg_type = contents["header"]["type"]
+        if not acknowledge:
+            return
+        elif ropod_msg_type in self.message_types:
+            ack_msg = dict()
+            header = dict()
+            payload = dict()
+
+            header["type"] = "ACKNOWLEDGEMENT"
+            header["msgId"] = self.generate_uuid()
+
+            payload["receivedMsg"] = contents["header"]["msgId"]
+
+            ack_msg["header"] = header
+            ack_msg["payload"] = payload
+
+            self.whisper(ack_msg, zyre_msg.peer_uuid)
+
+        elif ropod_msg_type in self.message_types and zyre_msg.msg_type == "WHISPER":
+            print('Whispered message is not on the message type list; not sending acknowledgement...')
+        else:
+            return
     def test(self):
         print(self.name())
         print(self.groups())
@@ -247,7 +287,7 @@ def main():
     test = PyreBaseCommunicator('test',
                                 ["OTHER-GROUP", "CHAT", "TEST", "PYRE"],
                                 ["TEST_MSG"],
-                                True)
+                                True, acknowledge=True)
 
     try:
         test.test()
