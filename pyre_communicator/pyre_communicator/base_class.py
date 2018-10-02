@@ -123,7 +123,6 @@ class PyreBaseCommunicator(pyre.Pyre):
                     elif zyre_msg.msg_type == "JOIN":
                         pass
                     elif zyre_msg.msg_type == "LEAVE":
-                        print(len(self.received_msg))
                         continue
                     elif zyre_msg.msg_type == "EXIT":
                         continue
