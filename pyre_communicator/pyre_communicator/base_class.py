@@ -15,7 +15,7 @@ ZYRE_SLEEP_TIME = 0.250  # type: float
 
 class PyreBaseCommunicator(pyre.Pyre):
     def __init__(self, node_name, groups, message_types, verbose=False,
-                 interface=None, acknowledge=False):
+                 interface=None, acknowledge=False, ropod_uuid=None):
         super(PyreBaseCommunicator, self).__init__(name=node_name)
 
         self.group_names = groups
@@ -37,6 +37,12 @@ class PyreBaseCommunicator(pyre.Pyre):
             self.join(group)
             time.sleep(ZYRE_SLEEP_TIME)
         self.terminated = False
+
+        self.set_header('name', node_name)
+        if ropod_uuid:
+            self.set_header('uuid', ropod_uuid)
+        else:
+            self.set_header('uuid', str(self.uuid()))
 
         self.ctx = zmq.Context()
         self.pipe = zhelper.zthread_fork(self.ctx, self.receive_loop)
