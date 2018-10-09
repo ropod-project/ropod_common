@@ -15,7 +15,19 @@ ZYRE_SLEEP_TIME = 0.250  # type: float
 
 class PyreBaseCommunicator(pyre.Pyre):
     def __init__(self, node_name, groups, message_types, verbose=False,
-                 interface=None, acknowledge=False, ropod_uuid=None):
+                 interface=None, acknowledge=False, ropod_uuid=None, extra_headers=None):
+        """
+
+        :param node_name: a string containing the name of the node
+        :param groups: a list of strings containing the groups the node will join
+        :param message_types: a list of strings containing the message types to acknowledge
+        :param verbose: boolean indicating whether to print output to the terminal
+        :param interface: sets the interface to be used by the node (Not implemented)
+        :param acknowledge: boolean indicating whether the node sould send acknowledgements for
+                            shout and whispered messages
+        :param ropod_uuid: a string containing the hexadecimal version of a nodes uuid
+        :param extra_headers: a dictionary containing the additional headers
+        """
         super(PyreBaseCommunicator, self).__init__(name=node_name)
 
         self.group_names = groups
@@ -30,7 +42,6 @@ class PyreBaseCommunicator(pyre.Pyre):
             self.interface = interface
 
         self.verbose = verbose
-        self.start()
 
         assert isinstance(groups, list)
         for group in groups:
@@ -43,6 +54,11 @@ class PyreBaseCommunicator(pyre.Pyre):
             self.set_header('uuid', ropod_uuid)
         else:
             self.set_header('uuid', str(self.uuid()))
+
+        for key in extra_headers:
+            self.set_header(key, extra_headers[key])
+
+        self.start()
 
         self.ctx = zmq.Context()
         self.pipe = zhelper.zthread_fork(self.ctx, self.receive_loop)
