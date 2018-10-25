@@ -55,8 +55,9 @@ class PyreBaseCommunicator(pyre.Pyre):
         else:
             self.set_header('uuid', str(self.uuid()))
 
-        for key in extra_headers:
-            self.set_header(key, extra_headers[key])
+        if extra_headers:
+            for key in extra_headers:
+                self.set_header(key, extra_headers[key])
 
         self.start()
 
