@@ -15,7 +15,19 @@ ZYRE_SLEEP_TIME = 0.250  # type: float
 
 class PyreBaseCommunicator(pyre.Pyre):
     def __init__(self, node_name, groups, message_types, verbose=False,
-                 interface=None, acknowledge=False):
+                 interface=None, acknowledge=False, ropod_uuid=None, extra_headers=None):
+        """
+
+        :param node_name: a string containing the name of the node
+        :param groups: a list of strings containing the groups the node will join
+        :param message_types: a list of strings containing the message types to acknowledge
+        :param verbose: boolean indicating whether to print output to the terminal
+        :param interface: sets the interface to be used by the node (Not implemented)
+        :param acknowledge: boolean indicating whether the node sould send acknowledgements for
+                            shout and whispered messages
+        :param ropod_uuid: a string containing the hexadecimal version of a nodes uuid
+        :param extra_headers: a dictionary containing the additional headers
+        """
         super(PyreBaseCommunicator, self).__init__(name=node_name)
 
         self.group_names = groups
@@ -30,13 +42,23 @@ class PyreBaseCommunicator(pyre.Pyre):
             self.interface = interface
 
         self.verbose = verbose
-        self.start()
 
         assert isinstance(groups, list)
         for group in groups:
             self.join(group)
             time.sleep(ZYRE_SLEEP_TIME)
         self.terminated = False
+
+        self.set_header('name', node_name)
+        if ropod_uuid:
+            self.set_header('uuid', ropod_uuid)
+        else:
+            self.set_header('uuid', str(self.uuid()))
+
+        for key in extra_headers:
+            self.set_header(key, extra_headers[key])
+
+        self.start()
 
         self.ctx = zmq.Context()
         self.pipe = zhelper.zthread_fork(self.ctx, self.receive_loop)
@@ -101,23 +123,14 @@ class PyreBaseCommunicator(pyre.Pyre):
                                        peer_uuid=uuid.UUID(bytes=self.received_msg.pop(0)),
                                        peer_name=self.received_msg.pop(0).decode('utf-8'))
 
-                    if self.verbose:
-                        print("----- new message ----- ")
-                        print("Type: ", zyre_msg.msg_type)
-                        print("Peer UUID: ", zyre_msg.peer_uuid)
-                        print("Peer Name: ", zyre_msg.peer_name)
-
                     if zyre_msg.msg_type == "SHOUT":
                         zyre_msg.update(group_name=self.received_msg.pop(0).decode('utf-8'))
-                        if self.verbose:
-                            print("Group: ", zyre_msg.group_name)
                     elif zyre_msg.msg_type == "ENTER":
                         zyre_msg.update(headers=json.loads(self.received_msg.pop(0).decode('utf-8')))
 
                         self.peer_directory[zyre_msg.peer_uuid] = zyre_msg.peer_name
                         if self.verbose:
                             print("Directory: ", self.peer_directory)
-                            print("Headers: ", zyre_msg.headers)
                     elif zyre_msg.msg_type == "WHISPER":
                         pass
                     elif zyre_msg.msg_type == "JOIN":
@@ -140,17 +153,23 @@ class PyreBaseCommunicator(pyre.Pyre):
                     zyre_msg.update(msg_content=self.received_msg.pop(0).decode('utf-8'))
 
                     if self.verbose:
-                        print("Content: ", zyre_msg.msg_content)
+                        print("----- new message ----- ")
+                        print(zyre_msg)
 
-                    if zyre_msg.msg_type == "SHOUT" or zyre_msg.msg_type == "WHISPER":
+                    if zyre_msg.msg_type in ("SHOUT", "WHISPER"):
                         if self.acknowledge:
                             self.send_acknowledgment(zyre_msg)
-                        self.receive_msg_cb(zyre_msg.msg_content)
+
+                    self.zyre_event_cb(zyre_msg)
 
             except (KeyboardInterrupt, SystemExit):
                 self.terminated = True
                 break
         print("Exiting.......")
+
+    def zyre_event_cb(self, zyre_msg):
+        if zyre_msg.msg_type in ("SHOUT", "WHISPER"):
+            self.receive_msg_cb(zyre_msg.msg_content)
 
     def shout(self, msg, groups=None):
         """
@@ -229,6 +248,7 @@ class PyreBaseCommunicator(pyre.Pyre):
         """
         This is a ROPOD-specific function to send acknowledgements to shouted and whispered messages defined in the
         node's constructor.
+        Note that this assumes that the messages being received are writen in json, according to ropod-models.
 
         :param zyre_msg: zyre_msg which contains the message type, peer, group, and contents
         """
@@ -239,40 +259,52 @@ class PyreBaseCommunicator(pyre.Pyre):
             acknowledge = True
         else:
             acknowledge = False
-        contents = self.convert_zyre_msg_to_dict(zyre_msg.msg_content)
-        ropod_msg_type = contents["header"]["type"]
-        if not acknowledge:
-            return
-        elif ropod_msg_type in self.message_types:
-            ack_msg = dict()
-            header = dict()
-            payload = dict()
 
-            header["type"] = "ACKNOWLEDGEMENT"
-            header["msgId"] = self.generate_uuid()
+        if zyre_msg.msg_content:
+            try:
+                contents = json.loads(zyre_msg.msg_content)
+            except ValueError as e:
+                print("Message is not formatted in json")
+                return
 
-            payload["receivedMsg"] = contents["header"]["msgId"]
+            ropod_msg_type = contents["header"]["type"]
+            if not acknowledge:
+                return
+            elif ropod_msg_type in self.message_types:
+                ack_msg = dict()
+                header = dict()
+                payload = dict()
 
-            ack_msg["header"] = header
-            ack_msg["payload"] = payload
+                header["type"] = "ACKNOWLEDGEMENT"
+                header["msgId"] = self.generate_uuid()
 
-            self.whisper(ack_msg, zyre_msg.peer_uuid)
+                payload["receivedMsg"] = contents["header"]["msgId"]
 
-        elif ropod_msg_type in self.message_types and zyre_msg.msg_type == "WHISPER":
-            print('Whispered message is not on the message type list; not sending acknowledgement...')
-        else:
-            return
+                ack_msg["header"] = header
+                ack_msg["payload"] = payload
+
+                self.whisper(ack_msg, zyre_msg.peer_uuid)
+
+            elif ropod_msg_type in self.message_types and zyre_msg.msg_type == "WHISPER":
+                print('Whispered message is not on the message type list; not sending acknowledgement...')
+            else:
+                return
+
     def test(self):
         print(self.name())
         print(self.groups())
         print(self.peers())
 
         time.sleep(ZYRE_SLEEP_TIME)
+        msg = {'header': {'type': 'TEST_MSG', 'msgId': self.generate_uuid()},
+               'payload': {'msg': 'test'}}
+
         for group in self.own_groups():
-            self.shout("hello", group)
+            self.shout(msg, group)
             time.sleep(1)
-        self.whisper("hello whispering", peer_name="chat_tester")
-        self.whisper("hello whispering", peer_names=["chat_tester", "chat_tester"])
+        self.shout('hello')
+        self.whisper(msg, peer_name="chat_tester")
+        self.whisper(msg, peer_names=["chat_tester", "chat_tester"])
 
     def shutdown(self):
         self.stop()
