@@ -36,7 +36,8 @@ class ZyreBaseCommunicator {
 	    const std::vector<std::string> &groups,
 	    const std::vector<std::string> &messageTypes,
 	    const bool &printAllReceivedMessages,
-        const std::string& interface="");
+        const std::string& interface="",
+        bool acknowledge = false);
     ~ZyreBaseCommunicator();
 
     void shout(const std::string &message);
@@ -72,11 +73,13 @@ class ZyreBaseCommunicator {
     bool printAllReceivedMessages;
     const int ZYRESLEEPTIME = 250;
     Json::StreamWriterBuilder json_stream_builder_;
+    bool acknowledge;
 
     static void receiveLoop(zsock_t* pipe, void* args);
     static void discoverLoop(zsock_t* pipe, void* args);
     zmsg_t* stringToZmsg(std::string msg);
     ZyreMsgContent* zmsgToZyreMsgContent(zmsg_t *msg);
+    void sendAcknowledgement(ZyreMsgContent * msgContent);
 };
 
 #endif
