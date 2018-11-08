@@ -7,5 +7,5 @@ setup(name='ropod_common',
       description='Packages for common ROPOD functionalities',
       author='Argentina Ortega Sainz',
       author_email='argentina.ortega@h-brs.de',
-      packages=['ropod.pyre_communicator']
+      packages=['ropod.pyre_communicator', 'ropod.pyftsm']
      )
