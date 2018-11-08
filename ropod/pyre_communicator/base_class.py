@@ -8,7 +8,7 @@ import ast
 from datetime import timezone, timedelta, datetime
 
 # from zyre_params import ZyreMsg
-from pyre_communicator.zyre_params import ZyreMsg
+from ropod.pyre_communicator.zyre_params import ZyreMsg
 
 ZYRE_SLEEP_TIME = 0.250  # type: float
 

@@ -2,10 +2,10 @@
 
 from setuptools import setup
 
-setup(name='PyreBaseCommunicator',
+setup(name='ropod_common',
       version='0.1.0',
-      description='A Pyre Base class',
+      description='Packages for common ROPOD functionalities',
       author='Argentina Ortega Sainz',
       author_email='argentina.ortega@h-brs.de',
-      package_dir={'': 'pyre_communicator'}
-      )
+      packages=['ropod.pyre_communicator']
+     )

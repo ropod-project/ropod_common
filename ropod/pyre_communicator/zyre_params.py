@@ -22,9 +22,4 @@ class ZyreMsg(object):
         self.__dict__.update(kwds)
 
     def __str__(self):
-        return '''Type: {}
-Peer UUID: {}
-Peer Name: {}
-Headers: {}
-Content: {}
-Group: {}'''.format(self.msg_type, self.peer_uuid, self.peer_name, self.headers, self.msg_content, self.group_name)
+        return 'Type: {0}\nPeer UUID: {1}\nPeer Name: {2}\nHeaders: {3}\nContent: {4}\nGroup: {5}\n'.format(self.msg_type, self.peer_uuid, self.peer_name, self.headers, self.msg_content, self.group_name)
