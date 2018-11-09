@@ -15,7 +15,7 @@ include_directories(
 
 add_executable(test
     src/test.cpp
-    /opt/ropod/ropod_common/ropodcpp/ftsm/src/ftsm.cpp
-    /opt/ropod/ftsm/cppftsm/src/ftsm_base.cpp
+    /opt/ropod/ropod_common/ropodcpp/ftsm/src/ftsm_base.cpp
+    /opt/ropod/ftsm/cppftsm/src/ftsm.cpp
 )
 target_link_libraries(test ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})

@@ -1,6 +1,6 @@
-from pyftsm.ftsm_base import FTSMBase, FTSMStates, FTSMTransitions
+from pyftsm.ftsm import FTSM, FTSMStates, FTSMTransitions
 
-class FTSM(FTSMBase):
+class FTSMBase(FTSM):
     '''ROPOD-specific implementation of a fault-tolerant state machine
 
     @author Alex Mitrevski
@@ -8,7 +8,7 @@ class FTSM(FTSMBase):
     @contact aleksandar.mitrevski@h-brs.de, santosh.thoduka@h-brs.de, argentina.ortega@h-brs.de
     '''
     def __init__(self, name, dependencies, max_recovery_attempts=1):
-        super(FTSM, self).__init__(name, dependencies, max_recovery_attempts)
+        super(FTSMBase, self).__init__(name, dependencies, max_recovery_attempts)
 
     def init(self):
         '''Method for component initialisation; returns FTSMTransitions.INITIALISED by default

@@ -1,11 +1,11 @@
-#include "ftsm_base.h"
+#include "ftsm.h"
 
 namespace ftsm
 {
-    class FTSM : public FTSMBase
+    class FTSMBase : public FTSM
     {
     public:
-        FTSM(std::string name, std::vector<std::string> dependencies, int max_recovery_attempts=1);
+        FTSMBase(std::string name, std::vector<std::string> dependencies, int max_recovery_attempts=1);
 
         /**
          * Method for component initialisation
