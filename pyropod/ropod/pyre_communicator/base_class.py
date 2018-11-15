@@ -1,3 +1,4 @@
+import os
 import pyre
 import time
 import uuid
@@ -24,7 +25,7 @@ class PyreBaseCommunicator(pyre.Pyre):
         :param groups: a list of strings containing the groups the node will join
         :param message_types: a list of strings containing the message types to acknowledge
         :param verbose: boolean indicating whether to print output to the terminal
-        :param interface: sets the interface to be used by the node (Not implemented)
+        :param interface: sets the interface to be used by the node
         :param acknowledge: boolean indicating whether the node sould send acknowledgements for
                             shout and whispered messages
         :param ropod_uuid: a string containing the hexadecimal version of a nodes uuid
@@ -40,6 +41,10 @@ class PyreBaseCommunicator(pyre.Pyre):
         self.peer_directory = {}
 
         if interface:
+            self.set_interface(interface)
+            self.interface = interface
+        elif 'ZSYS_INTERFACE' in os.environ:
+            interface = os.environ['ZSYS_INTERFACE']
             self.set_interface(interface)
             self.interface = interface
 
