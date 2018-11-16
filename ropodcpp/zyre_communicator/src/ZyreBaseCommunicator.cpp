@@ -8,12 +8,14 @@ ZyreBaseCommunicator::ZyreBaseCommunicator(const std::string &nodeName,
 		 const std::vector<std::string> &groups,
 		 const std::vector<std::string> &messageTypes,
 		 const bool &printAllReceivedMessages,
-         const std::string& interface)
+         const std::string& interface,
+         bool acknowledge)
 {
     this->params.nodeName = nodeName;
-    this->params.messageTypes;
+    this->params.messageTypes = messageTypes;
     this->printAllReceivedMessages = printAllReceivedMessages;
     this->params.groups = std::vector<std::string> {};  // will be filled by this->joinGroup()
+    this->acknowledge = acknowledge;
 
     this->node = zyre_new(nodeName.c_str());
     if (!node)
@@ -112,10 +114,46 @@ void ZyreBaseCommunicator::receiveLoop(zsock_t *pipe, void *args)
                 out_msg << "Message: " <<  msgContent->message << "\n\n";
                 std::cout <<  out_msg.rdbuf();
             }
+            if ((msgContent->event == "SHOUT" || msgContent->event == "WHISPER"))
+            {
+                objectPtr->sendAcknowledgement(msgContent);
+            }
+
            objectPtr->recvMsgCallback(msgContent);
         }
     }
     zpoller_destroy (&poller);
+}
+
+void ZyreBaseCommunicator::sendAcknowledgement(ZyreMsgContent * msgContent)
+{
+    if (!acknowledge)
+    {
+        return;
+    }
+    if (!msgContent->message.empty())
+    {
+        Json::Value root = convertZyreMsgToJson(msgContent);
+        if (root.isMember("header") && root["header"].isMember("type")
+            && root["header"].isMember("msgId"))
+        {
+            std::string msg_type = root["header"]["type"].asString();
+            // only acknowledge known message types
+            if (std::find(std::begin(params.messageTypes), std::end(params.messageTypes), msg_type) != std::end(params.messageTypes))
+            {
+                Json::Value ack_msg;
+                ack_msg["header"]["type"] = "ACKNOWLEDGEMENT";
+                ack_msg["header"]["metamodel"] = "ropod-msg-schema.json";
+                ack_msg["header"]["msgId"] = generateUUID();
+                char *timestr = zclock_timestr (); // TODO: this is not ISO 8601
+                ack_msg["header"]["timestamp"] = timestr;
+                zstr_free(&timestr);
+                ack_msg["payload"]["receivedMsg"] = root["header"]["msgId"].asString();
+                std::string ack_msg_str = convertJsonToString(ack_msg);
+                whisper(ack_msg_str, msgContent->peer);
+            }
+        }
+    }
 }
 
 zmsg_t* ZyreBaseCommunicator::stringToZmsg(std::string msg)

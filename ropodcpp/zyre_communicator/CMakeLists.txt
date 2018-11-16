@@ -12,7 +12,7 @@ include_directories(include/
     ${JSONCPP_INCLUDE_DIRS}
     )
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/zyre_communicator/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(zyre)
 find_package(czmq)
 find_package(libzmq)
