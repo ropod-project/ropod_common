@@ -9,13 +9,13 @@ import ast
 from datetime import timezone, timedelta, datetime
 import dateutil.parser as date_parser
 
-# from zyre_params import ZyreMsg
-from ropod.pyre_communicator.zyre_params import ZyreMsg
+from pyre_base.zyre_params import ZyreMsg
+from pyre_base.base_class import PyreBase
 
 ZYRE_SLEEP_TIME = 0.250  # type: float
 
 
-class PyreBaseCommunicator(pyre.Pyre):
+class RopodPyre(PyreBase):
     def __init__(self, node_name, groups, message_types, verbose=False,
                  interface=None, acknowledge=True, ropod_uuid=None, extra_headers=None,
                  retries=5):
@@ -31,30 +31,10 @@ class PyreBaseCommunicator(pyre.Pyre):
         :param ropod_uuid: a string containing the hexadecimal version of a nodes uuid
         :param extra_headers: a dictionary containing the additional headers
         """
-        super(PyreBaseCommunicator, self).__init__(name=node_name)
+        super(RopodPyre, self).__init__(node_name, groups, message_types,
+                                            verbose=False, interface=None)
 
-        self.group_names = groups
         self.acknowledge = acknowledge
-
-        assert isinstance(message_types, list)
-        self.message_types = message_types
-        self.peer_directory = {}
-
-        if interface:
-            self.set_interface(interface)
-            self.interface = interface
-        elif 'ZSYS_INTERFACE' in os.environ:
-            interface = os.environ['ZSYS_INTERFACE']
-            self.set_interface(interface)
-            self.interface = interface
-
-        self.verbose = verbose
-
-        assert isinstance(groups, list)
-        for group in groups:
-            self.join(group)
-            time.sleep(ZYRE_SLEEP_TIME)
-        self.terminated = False
 
         self.set_header('name', node_name)
         if ropod_uuid:
@@ -66,20 +46,16 @@ class PyreBaseCommunicator(pyre.Pyre):
             for key in extra_headers:
                 self.set_header(key, extra_headers[key])
 
-        self.start()
-
-        self.ctx = zmq.Context()
-        self.pipe = zhelper.zthread_fork(self.ctx, self.receive_loop)
-
         self.acknowledge = acknowledge
         self.unacknowledged_msgs = {}
         self.number_of_retries = retries
 
+        if self.acknowledge:
+            self.unacknowledged_msgs = {}
+            self.number_of_retries = retries
+
     def receive_msg_cb(self, msg_content):
         pass
-
-    def groups(self):
-        return self.own_groups()
 
     def convert_zyre_msg_to_dict(self, msg):
         try:
@@ -91,28 +67,6 @@ class PyreBaseCommunicator(pyre.Pyre):
                 print("Couldn't convert zyre_msg to dictionary")
                 print(e)
                 return None
-
-    def leave_groups(self, groups):
-        for group in groups:
-            self.leave(group)
-
-    def generate_uuid(self):
-        """
-        Returns a string containing a random uuid
-        """
-        return str(uuid.uuid4())
-
-    def get_time_stamp(self, delta=None):
-        """
-        Returns a string containing the time stamp in seconds after epoch
-        @param delta    datetime.timedelta object specifying the difference
-                            between today and the desired date
-        """
-        if delta is None:
-            return datetime.now().timestamp()
-
-        else:
-            return (datetime.now() + delta).timestamp()
 
     def receive_loop(self, ctx, pipe):
 
@@ -211,14 +165,14 @@ class PyreBaseCommunicator(pyre.Pyre):
         if groups:
             if isinstance(groups, list):
                 for group in groups:
-                    super(PyreBaseCommunicator, self).shout(group, message)
+                    super(RopodPyre, self).shout(group, message)
                     time.sleep(ZYRE_SLEEP_TIME)
             else:
                 # TODO Do we need formatted strings?
-                super(PyreBaseCommunicator, self).shout(groups, message)
+                super(RopodPyre, self).shout(groups, message)
         else:
             for group in self.groups():
-                super(PyreBaseCommunicator, self).shout(group, message)
+                super(RopodPyre, self).shout(group, message)
 
     def whisper(self, msg, peer=None, peers=None, peer_name=None, peer_names=None):
         """
@@ -248,7 +202,7 @@ class PyreBaseCommunicator(pyre.Pyre):
             return
 
         if peer:
-            super(PyreBaseCommunicator, self).whisper(peer, message)
+            super(RopodPyre, self).whisper(peer, message)
         elif peers:
             for peer in peers:
                 time.sleep(ZYRE_SLEEP_TIME)
@@ -257,12 +211,12 @@ class PyreBaseCommunicator(pyre.Pyre):
             valid_uuids = [k for k, v in self.peer_directory.items() if v == peer_name]
             for peer_uuid in valid_uuids:
                 time.sleep(ZYRE_SLEEP_TIME)
-                super(PyreBaseCommunicator, self).whisper(peer_uuid, message)
+                super(RopodPyre, self).whisper(peer_uuid, message)
         elif peer_names:
             for peer_name in peer_names:
                 valid_uuids = [k for k, v in self.peer_directory.items() if v == peer_name]
                 for peer_uuid in valid_uuids:
-                    super(PyreBaseCommunicator, self).whisper(peer_uuid, message)
+                    super(RopodPyre, self).whisper(peer_uuid, message)
                 time.sleep(ZYRE_SLEEP_TIME)
 
     def send_acknowledgment(self, zyre_msg):
@@ -427,22 +381,15 @@ class PyreBaseCommunicator(pyre.Pyre):
         self.whisper(msg, peer_name="chat_tester")
         self.whisper(msg, peer_names=["chat_tester", "chat_tester"])
 
-    def shutdown(self):
-        self.stop()
-        self.pipe.disable_monitor()
-        self.pipe.close()
-        self.ctx.term()
-        self.terminated = True
-
 
 def main():
-    '''
-    test = PyreBaseCommunicator('test',
-                                ["OTHER-GROUP", "CHAT", "TEST", "PYRE"],
-                                ["TEST_MSG"],
-                                True, acknowledge=True)
+    test = RopodPyre('test',
+                         ["OTHER-GROUP", "CHAT", "TEST", "PYRE"],
+                         ["TEST_MSG"],
+                         True, acknowledge=True)
 
     try:
+        test.start()
         test.test()
         while True:
             time.sleep(0.5)
