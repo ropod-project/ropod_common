@@ -1,4 +1,4 @@
 PyYAML==3.11
 pyzmq==17.1.2
 python-dateutil
-git+ssh://git@git.ropod.org/ropod/zyre_base.git
+git+https://github.com/ropod-project/zyre_base.git
