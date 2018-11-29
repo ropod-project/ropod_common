@@ -367,14 +367,16 @@ class PyreBaseCommunicator(pyre.Pyre):
         :return:
         """
         dropped_msgs = []
+        print(self.unacknowledged_msgs)
 
         for msg_id, attempt_info in self.unacknowledged_msgs.items():
             if attempt_info['retry_number'] > self.number_of_retries:
                 print("Retried {} times, stopping.".format(self.number_of_retries))
                 dropped_msgs.append(msg_id)
             else:
-                now = datetime.now()
-                if date_parser.parse(attempt_info['next_retry']) < now:
+                now = datetime.now().timestamp()
+                print(attempt_info)
+                if attempt_info['next_retry'] < now:
                     msg_args = attempt_info['msg_args']
                     if attempt_info['zyre_msg_type'] == "SHOUT":
                         self.shout(**msg_args)
