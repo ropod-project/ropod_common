@@ -104,14 +104,15 @@ class PyreBaseCommunicator(pyre.Pyre):
 
     def get_time_stamp(self, delta=None):
         """
-        Returns a string containing the time stamp in ISO formato
+        Returns a string containing the time stamp in seconds after epoch
         @param delta    datetime.timedelta object specifying the difference
                             between today and the desired date
         """
         if delta is None:
-            return datetime.now(timezone.utc).isoformat()
+            return datetime.now().timestamp()
+
         else:
-            return (datetime.now(timezone.utc) + delta).isoformat()
+            return (datetime.now() + delta).timestamp()
 
     def receive_loop(self, ctx, pipe):
 
@@ -372,7 +373,7 @@ class PyreBaseCommunicator(pyre.Pyre):
                 print("Retried {} times, stopping.".format(self.number_of_retries))
                 dropped_msgs.append(msg_id)
             else:
-                now = datetime.now(timezone.utc)
+                now = datetime.now()
                 if date_parser.parse(attempt_info['next_retry']) < now:
                     msg_args = attempt_info['msg_args']
                     if attempt_info['zyre_msg_type'] == "SHOUT":
