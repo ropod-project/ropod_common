@@ -367,7 +367,6 @@ class PyreBaseCommunicator(pyre.Pyre):
         :return:
         """
         dropped_msgs = []
-        print(self.unacknowledged_msgs)
 
         for msg_id, attempt_info in self.unacknowledged_msgs.items():
             if attempt_info['retry_number'] > self.number_of_retries:
