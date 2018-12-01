@@ -86,11 +86,12 @@ class PyreBaseCommunicator(pyre.Pyre):
         try:
             return ast.literal_eval(msg)
         except ValueError:
-            return json.loads(msg)
-        except Exception as e:
-            print("Couldn't convert zyre_msg to dictionary")
-            print(e)
-            return None
+            try:
+                return json.loads(msg)
+            except Exception as e:
+                print("Couldn't convert zyre_msg to dictionary")
+                print(e)
+                return None
 
     def leave_groups(self, groups):
         for group in groups:
