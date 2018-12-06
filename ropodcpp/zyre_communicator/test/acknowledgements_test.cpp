@@ -17,7 +17,7 @@ class ZyreNode : public ZyreBaseCommunicator
 
     private:
     virtual void recvMsgCallback(ZyreMsgContent* msgContent);
-    virtual void sendMessageStatusCallback(const std::string &msgId, bool status);
+    virtual void sendMessageStatus(const std::string &msgId, bool status);
 };
 
 void ZyreNode::recvMsgCallback(ZyreMsgContent* msgContent)
@@ -26,7 +26,7 @@ void ZyreNode::recvMsgCallback(ZyreMsgContent* msgContent)
     //std::cout << message << "\n";
 }
 
-void ZyreNode::sendMessageStatusCallback(const std::string &msgId, bool status)
+void ZyreNode::sendMessageStatus(const std::string &msgId, bool status)
 {
     std::cout << "Got send status for " << msgId << ": " << status << std::endl;
 }

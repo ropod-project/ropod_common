@@ -378,7 +378,7 @@ void ZyreBaseCommunicator::resendMessages()
                 std::string msgId = it->first;
                 messageQueue.erase(it++);
                 deleted = true;
-                this->sendMessageStatusCallback(msgId, false);
+                this->sendMessageStatus(msgId, false);
             }
         }
         if (!deleted)
@@ -404,7 +404,7 @@ void ZyreBaseCommunicator::processAcknowledgement(ZyreMsgContent *msgContent)
         if (it != messageQueue.end())
         {
             messageQueue.erase(it);
-            this->sendMessageStatusCallback(msgId, true);
+            this->sendMessageStatus(msgId, true);
         }
     }
 }

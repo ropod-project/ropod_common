@@ -82,11 +82,11 @@ class ZyreBaseCommunicator {
     void leaveGroup(std::vector<std::string> groups);
 
     /**
-     * sets the types of messages which this node expects an acknowledgement
+     * sets the types of messages for which this node expects an acknowledgement
      */
     void setExpectAcknowledgementFor(const std::vector<std::string> &messageTypes);
     /**
-     * sets the types of messages for which this node will send back and 
+     * sets the types of messages for which this node will send back an
      * acknowledgement when received
      */
     void setSendAcknowledgementFor(const std::vector<std::string> &messageTypes);
@@ -112,7 +112,7 @@ class ZyreBaseCommunicator {
      * @param msgId the message ID of the outgoing message
      * @param status True if acknowledged, False if retries exceeded
      */
-    virtual void sendMessageStatusCallback(const std::string &msgId, bool status) = 0;
+    virtual void sendMessageStatus(const std::string &msgId, bool status) {}
     Json::Value convertZyreMsgToJson(ZyreMsgContent* msg_params);
     Json::Value convertStringToJson(const std::string &msg);
     std::string convertJsonToString(const Json::Value &root);

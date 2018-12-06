@@ -14,7 +14,6 @@ class CCU : public ZyreBaseCommunicator
 
     private:
     virtual void recvMsgCallback(ZyreMsgContent* msgContent);
-    virtual void sendMessageStatusCallback(const std::string &msgId, bool status);
 };
 
 void CCU::recvMsgCallback(ZyreMsgContent* msgContent)
@@ -23,9 +22,6 @@ void CCU::recvMsgCallback(ZyreMsgContent* msgContent)
     //std::cout << message << "\n";
 }
 
-void CCU::sendMessageStatusCallback(const std::string &msgId, bool status)
-{
-}
 
 int main(int argc, char *argv[])
 {
