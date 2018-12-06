@@ -3,6 +3,8 @@
 #include <cstdarg>
 #include <algorithm>  // provides std::find
 #include <sstream>
+#include <tuple>
+#include <chrono>
 
 ZyreBaseCommunicator::ZyreBaseCommunicator(const std::string &nodeName,
 		 const std::vector<std::string> &groups,
@@ -16,6 +18,8 @@ ZyreBaseCommunicator::ZyreBaseCommunicator(const std::string &nodeName,
     this->printAllReceivedMessages = printAllReceivedMessages;
     this->params.groups = std::vector<std::string> {};  // will be filled by this->joinGroup()
     this->acknowledge = acknowledge;
+    // TODO: this needs to be specified for each message type
+    this->messageInterval = 5000;
 
     this->node = zyre_new(nodeName.c_str());
     if (!node)
@@ -71,13 +75,26 @@ void ZyreBaseCommunicator::printReceivingMessageTypes()
 void ZyreBaseCommunicator::receiveLoop(zsock_t *pipe, void *args)
 {
     ZyreBaseCommunicator* objectPtr = (ZyreBaseCommunicator*) args;
-
     zsock_signal (pipe, 0);     //  Signal "ready" to caller
+
+    // wait a bit for constructor to finish
+    // this is required because we don't want to call recvMsgCallback
+    // which is a pure virtual function from the base class constructor
+    zclock_sleep(500);
+
     bool terminated = false;
     zpoller_t *poller = zpoller_new (pipe, zyre_socket (objectPtr->node), NULL);
     while (!terminated) {
-        void *which = zpoller_wait (poller, -1);
-        if (which == pipe) {
+        // this will return either when a new message is received or when timeout expires
+        void *which = zpoller_wait (poller, ZyreBaseCommunicator::ZYREPOLLTIME);
+        // expired due to process termination
+        if (zpoller_terminated(poller))
+        {
+            terminated = true;
+            break;
+        }
+        else if (which == pipe)
+        {
             zmsg_t* msg = zmsg_recv (which);
             if (!msg)
                 break;              //  Interrupted
@@ -85,11 +102,6 @@ void ZyreBaseCommunicator::receiveLoop(zsock_t *pipe, void *args)
             char *command = zmsg_popstr (msg);
             if (streq (command, "$TERM"))
                 terminated = true;
-            // else
-	    // if (streq (command, "SHOUT")) {
-            // char *string = zmsg_popstr (msg);
-            // zyre_shouts (node, "CHAT", "%s", string);
-	    // }
             else {
                 puts ("E: invalid message to receiveActor");
                 assert (false);
@@ -97,8 +109,8 @@ void ZyreBaseCommunicator::receiveLoop(zsock_t *pipe, void *args)
             free (command);
             zmsg_destroy (&msg);
         }
-        else
-        if (which == zyre_socket (objectPtr->node)) {
+        else if (which == zyre_socket (objectPtr->node))
+        {
             zmsg_t *msg = zmsg_recv (which);
             ZyreMsgContent* msgContent = objectPtr->zmsgToZyreMsgContent(msg);
             zmsg_destroy (&msg);
@@ -116,11 +128,18 @@ void ZyreBaseCommunicator::receiveLoop(zsock_t *pipe, void *args)
             }
             if ((msgContent->event == "SHOUT" || msgContent->event == "WHISPER"))
             {
+                // check if we need to send an acknowledgement
                 objectPtr->sendAcknowledgement(msgContent);
             }
-
+            if (msgContent->event == "WHISPER")
+            {
+                // we may have received an acknowledgement, so process it
+                objectPtr->processAcknowledgement(msgContent);
+            }
            objectPtr->recvMsgCallback(msgContent);
         }
+        // resend any messages in the queue
+        objectPtr->resendMessages();
     }
     zpoller_destroy (&poller);
 }
@@ -139,7 +158,8 @@ void ZyreBaseCommunicator::sendAcknowledgement(ZyreMsgContent * msgContent)
         {
             std::string msg_type = root["header"]["type"].asString();
             // only acknowledge known message types
-            if (std::find(std::begin(params.messageTypes), std::end(params.messageTypes), msg_type) != std::end(params.messageTypes))
+            if (std::find(std::begin(sendAcknowledgementFor),
+                std::end(sendAcknowledgementFor), msg_type) != std::end(sendAcknowledgementFor))
             {
                 Json::Value ack_msg;
                 ack_msg["header"]["type"] = "ACKNOWLEDGEMENT";
@@ -167,7 +187,6 @@ zmsg_t* ZyreBaseCommunicator::stringToZmsg(std::string msg)
 void ZyreBaseCommunicator::shout(const std::string &message, const std::vector<std::string> &groups)
 {
     // TODO: check if subscribed to group
-    // zstr_sendx(this->receiveActor, "SHOUT", message, groups, NULL);
     for (auto it = groups.begin(); it != groups.end(); it++)
     {
 	    shout(message, *it);
@@ -184,14 +203,14 @@ void ZyreBaseCommunicator::shout(const std::string &message)
 
 void ZyreBaseCommunicator::shout(const std::string &message, const std::string &group)
 {
+    checkAndQueueMessage(message, group, true);
     zyre_shouts(node, group.c_str(), "%s", message.c_str());
-//    zmsg_t *msg = this->stringToZmsg(message);
-//    zyre_shout(node, group.c_str(), &msg);
 }
 
 
 void ZyreBaseCommunicator::whisper(const std::string &message, const std::string &peer)
 {
+    checkAndQueueMessage(message, peer, false);
     zyre_whispers(node, peer.c_str(), "%s", message.c_str());
 }
 
@@ -251,6 +270,134 @@ void ZyreBaseCommunicator::leaveGroup(std::vector<std::string> groups)
     }
 }
 
+void ZyreBaseCommunicator::setExpectAcknowledgementFor(const std::vector<std::string> &messageTypes)
+{
+    expectAcknowledgementFor = messageTypes;
+}
+
+void ZyreBaseCommunicator::setSendAcknowledgementFor(const std::vector<std::string> &messageTypes)
+{
+    sendAcknowledgementFor = messageTypes;
+}
+
+bool ZyreBaseCommunicator::requiresAcknowledgement(const Json::Value &root)
+{
+    if (root.isMember("header")  &&
+        root["header"].isMember("msgId") &&
+        root["header"].isMember("type"))
+    {
+        std::string type = root["header"]["type"].asString();
+        if (std::find(std::begin(expectAcknowledgementFor), std::end(expectAcknowledgementFor), type) != std::end(expectAcknowledgementFor))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ZyreBaseCommunicator::addMessageToQueue(const std::string &msgId, const std::string &message, const std::string &group_or_peer, bool is_shout)
+{
+    using namespace std::chrono;
+    double current_time_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    current_time_ms += messageInterval;
+
+    ResendMessageParams resend_params;
+    resend_params.number_of_retries_left = 5;
+    resend_params.next_retry_time = current_time_ms;
+    resend_params.is_shout = is_shout;
+    if (is_shout)
+    {
+        resend_params.group = group_or_peer;
+    }
+    else
+    {
+        resend_params.peer = group_or_peer;
+    }
+
+    auto item = std::make_pair(message, resend_params);
+
+    std::lock_guard<std::mutex> guard(messageQueueMutex);
+    messageQueue[msgId] = item;
+}
+
+void ZyreBaseCommunicator::checkAndQueueMessage(const std::string &message, const std::string &group_or_peer, bool is_shout)
+{
+    Json::Value root = convertStringToJson(message);
+    if (requiresAcknowledgement(root))
+    {
+        std::string msgId = root["header"]["msgId"].asString();
+        addMessageToQueue(msgId, message, group_or_peer, is_shout);
+    }
+}
+
+void ZyreBaseCommunicator::resendMessages()
+{
+    using namespace std::chrono;
+    double current_time_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    MessageQueue::iterator it;
+
+    // protect the messageQueue since we might delete items from it
+    std::lock_guard<std::mutex> guard(messageQueueMutex);
+    for (it = messageQueue.begin(); it != messageQueue.end();)
+    {
+        double resend_time = it->second.second.next_retry_time;
+        bool deleted = false;
+        if (resend_time < current_time_ms)
+        {
+            std::cout << "Resending message: " << it->first << std::endl;
+            std::cout << "Retries left: " << it->second.second.number_of_retries_left << std::endl;
+            // resend the message
+            std::string message = it->second.first;
+            if (it->second.second.is_shout)
+            {
+                std::string group = it->second.second.group;
+                zyre_shouts(node, group.c_str(), "%s", message.c_str());
+            }
+            else
+            {
+                std::string peer = it->second.second.peer;
+                zyre_whispers(node, peer.c_str(), "%s", message.c_str());
+            }
+            // set next send time
+            it->second.second.next_retry_time += messageInterval;
+            // decrement resend count
+            it->second.second.number_of_retries_left -= 1;
+            // if we've sent enough times, remove it from the cache
+            if (it->second.second.number_of_retries_left == -1)
+            {
+                messageQueue.erase(it++);
+                deleted = true;
+                this->sendMessageStatusCallback(it->first, false);
+            }
+        }
+        if (!deleted)
+        {
+            ++it;
+        }
+    }
+}
+
+void ZyreBaseCommunicator::processAcknowledgement(ZyreMsgContent *msgContent)
+{
+    Json::Value root = convertStringToJson(msgContent->message);
+    if (root.isMember("header") &&
+        root["header"].isMember("type") &&
+        root["header"]["type"].asString() == "ACKNOWLEDGEMENT")
+    {
+        std::lock_guard<std::mutex> guard(messageQueueMutex);
+
+        std::string msgId = root["payload"]["receivedMsg"].asString();
+        std::string peer = msgContent->peer;
+        std::cout << "Received acknowledgement for for msgid " << msgId << " from " << peer << std::endl;
+        auto it = messageQueue.find(msgId);
+        if (it != messageQueue.end())
+        {
+            messageQueue.erase(it);
+            this->sendMessageStatusCallback(msgId, true);
+        }
+    }
+}
+
 ZyreMsgContent* ZyreBaseCommunicator::zmsgToZyreMsgContent(zmsg_t *msg)
 {
     std::string sevent, speer, sname, sgroup, smessage;
@@ -264,8 +411,18 @@ ZyreMsgContent* ZyreBaseCommunicator::zmsgToZyreMsgContent(zmsg_t *msg)
     sevent = (event == nullptr) ? "" : event;
     speer = (peer == nullptr) ? "" : peer;
     sname = (name == nullptr) ? "" : name;
-    sgroup = (group == nullptr) ? "" : group;
-    smessage = (message == nullptr) ? "" : message;
+    if (sevent == "WHISPER")
+    {
+        // if event is whisper, the group is empty
+        // and the message is the fourth item to be popped
+        sgroup = "";
+        smessage = (group == nullptr) ? "" : group;
+    }
+    else
+    {
+        sgroup = (group == nullptr) ? "" : group;
+        smessage = (message == nullptr) ? "" : message;
+    }
 
     free(event);
     free(peer);
@@ -282,14 +439,20 @@ ZyreMsgContent* ZyreBaseCommunicator::zmsgToZyreMsgContent(zmsg_t *msg)
   *
   * @param msg_params message data
   */
- Json::Value ZyreBaseCommunicator::convertZyreMsgToJson(ZyreMsgContent* msg_params)
- {
+Json::Value ZyreBaseCommunicator::convertZyreMsgToJson(ZyreMsgContent* msg_params)
+{
+    return convertStringToJson(msg_params->message);
+}
+
+Json::Value ZyreBaseCommunicator::convertStringToJson(const std::string &msg)
+{
     std::stringstream msg_stream;
-    msg_stream << msg_params->message;
+    msg_stream << msg;
 
     Json::Value root;
     Json::CharReaderBuilder reader_builder;
     std::string errors;
+    // TODO: handle exceptions
     bool ok = Json::parseFromStream(reader_builder, msg_stream, &root, &errors);
 
     return root;

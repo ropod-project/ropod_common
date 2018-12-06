@@ -13,13 +13,18 @@ class CCU : public ZyreBaseCommunicator
     {};
 
     private:
-    void recvMsgCallback(ZyreMsgContent* msgContent);
+    virtual void recvMsgCallback(ZyreMsgContent* msgContent);
+    virtual void sendMessageStatusCallback(const std::string &msgId, bool status);
 };
 
 void CCU::recvMsgCallback(ZyreMsgContent* msgContent)
 {
     //std::cout << this->getNodeName() << " received message" << "\n";
     //std::cout << message << "\n";
+}
+
+void CCU::sendMessageStatusCallback(const std::string &msgId, bool status)
+{
 }
 
 int main(int argc, char *argv[])
@@ -33,16 +38,16 @@ int main(int argc, char *argv[])
     bool b = true;
 
     {
-        CCU CCU_test_1 = CCU("CCU_test_1", groups, messageTypes, b);
-        CCU CCU_test_2 = CCU("CCU_test_2", groups, messageTypes, b);
+        CCU CCU_test_1("CCU_test_1", groups, messageTypes, b);
+        CCU CCU_test_2("CCU_test_2", groups, messageTypes, b);
         CCU_test_1.printJoinedGroups();
         CCU_test_2.printJoinedGroups();
         zclock_sleep(3000);
     }
 
 
-    CCU CCU_test_1 = CCU("CCU_test_1", groups, messageTypes, b);
-    CCU CCU_test_2 = CCU("CCU_test_2", groups, messageTypes, b);
+    CCU CCU_test_1("CCU_test_1", groups, messageTypes, b);
+    CCU CCU_test_2("CCU_test_2", groups, messageTypes, b);
 
     for (int i = 0; i < 10; i++)
     {
