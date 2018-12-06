@@ -43,3 +43,11 @@ add_executable(acknowledge_test
 target_link_libraries(acknowledge_test 
     ${LIBRARIES}
 )
+
+add_executable(repeated_message_test 
+    test/repeated_message_test.cpp
+    src/ZyreBaseCommunicator.cpp
+)
+target_link_libraries(repeated_message_test 
+    ${LIBRARIES}
+)

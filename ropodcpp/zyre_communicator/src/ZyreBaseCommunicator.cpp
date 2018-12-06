@@ -20,6 +20,8 @@ ZyreBaseCommunicator::ZyreBaseCommunicator(const std::string &nodeName,
     this->acknowledge = acknowledge;
     // TODO: this needs to be specified for each message type
     this->messageInterval = 5000;
+    // if same msgId received within 30 seconds, discard it
+    this->maxMessageAge = 30000;
 
     this->node = zyre_new(nodeName.c_str());
     if (!node)
@@ -128,15 +130,24 @@ void ZyreBaseCommunicator::receiveLoop(zsock_t *pipe, void *args)
             }
             if ((msgContent->event == "SHOUT" || msgContent->event == "WHISPER"))
             {
-                // check if we need to send an acknowledgement
-                objectPtr->sendAcknowledgement(msgContent);
+                // if shout or whisper only call the callback if message is not repeated
+                if (!objectPtr->isMessageRepeated(msgContent))
+                {
+                    // check if we need to send an acknowledgement
+                    objectPtr->sendAcknowledgement(msgContent);
+
+                    if (msgContent->event == "WHISPER")
+                    {
+                        // we may have received an acknowledgement, so process it
+                        objectPtr->processAcknowledgement(msgContent);
+                    }
+                    objectPtr->recvMsgCallback(msgContent);
+                }
             }
-            if (msgContent->event == "WHISPER")
+            else // any other type of event, call the callback anyway
             {
-                // we may have received an acknowledgement, so process it
-                objectPtr->processAcknowledgement(msgContent);
+                objectPtr->recvMsgCallback(msgContent);
             }
-           objectPtr->recvMsgCallback(msgContent);
         }
         // resend any messages in the queue
         objectPtr->resendMessages();
@@ -297,8 +308,7 @@ bool ZyreBaseCommunicator::requiresAcknowledgement(const Json::Value &root)
 
 void ZyreBaseCommunicator::addMessageToQueue(const std::string &msgId, const std::string &message, const std::string &group_or_peer, bool is_shout)
 {
-    using namespace std::chrono;
-    double current_time_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    double current_time_ms = getCurrentTime();
     current_time_ms += messageInterval;
 
     ResendMessageParams resend_params;
@@ -326,14 +336,14 @@ void ZyreBaseCommunicator::checkAndQueueMessage(const std::string &message, cons
     if (requiresAcknowledgement(root))
     {
         std::string msgId = root["header"]["msgId"].asString();
+        std::cout << msgId << " requires acknowledgement; adding to queue" << std::endl;
         addMessageToQueue(msgId, message, group_or_peer, is_shout);
     }
 }
 
 void ZyreBaseCommunicator::resendMessages()
 {
-    using namespace std::chrono;
-    double current_time_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    double current_time_ms = getCurrentTime();
     MessageQueue::iterator it;
 
     // protect the messageQueue since we might delete items from it
@@ -365,9 +375,10 @@ void ZyreBaseCommunicator::resendMessages()
             // if we've sent enough times, remove it from the cache
             if (it->second.second.number_of_retries_left == -1)
             {
+                std::string msgId = it->first;
                 messageQueue.erase(it++);
                 deleted = true;
-                this->sendMessageStatusCallback(it->first, false);
+                this->sendMessageStatusCallback(msgId, false);
             }
         }
         if (!deleted)
@@ -396,6 +407,49 @@ void ZyreBaseCommunicator::processAcknowledgement(ZyreMsgContent *msgContent)
             this->sendMessageStatusCallback(msgId, true);
         }
     }
+}
+
+bool ZyreBaseCommunicator::isMessageRepeated(ZyreMsgContent *msgContent)
+{
+    // remove old messages
+    ReceivedMessages::iterator it;
+    double currentTime = getCurrentTime();
+    for (it = receivedMessages.begin(); it != receivedMessages.end();)
+    {
+        if (it->second + maxMessageAge  < currentTime)
+        {
+            //message has expired, so delete it
+            receivedMessages.erase(it++);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+    // check if received message is a repeated one
+    Json::Value root = convertStringToJson(msgContent->message);
+    if (root.isMember("header") &&
+        root["header"].isMember("type") &&
+        root["header"].isMember("msgId"))
+    {
+        std::string msgId = root["header"]["msgId"].asString();
+        if (receivedMessages.count(msgId) != 0)
+        {
+            std::cout << "Received repeated message " << msgId << ". Discarding it." << std::endl;
+            return true;
+        }
+        else
+        {
+            receivedMessages[msgId] = currentTime;
+        }
+    }
+}
+
+double ZyreBaseCommunicator::getCurrentTime()
+{
+    using namespace std::chrono;
+    double current_time_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    return current_time_ms;
 }
 
 ZyreMsgContent* ZyreBaseCommunicator::zmsgToZyreMsgContent(zmsg_t *msg)

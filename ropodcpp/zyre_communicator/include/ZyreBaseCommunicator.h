@@ -132,6 +132,10 @@ class ZyreBaseCommunicator {
      * map from msgId to (msg, parameters for resending)
      */
     typedef std::map<std::string, std::pair<std::string, ResendMessageParams> > MessageQueue;
+    /**
+     * map from msgId to arrival time of message in ms
+     */
+    typedef std::map<std::string, double> ReceivedMessages;
 
     private:
     ZyreParams params;
@@ -166,9 +170,35 @@ class ZyreBaseCommunicator {
     // interval between resending messages in ms
     int messageInterval;
 
+    /**
+     * maximum time after arrival in ms during which a message is considered valid
+     * i.e. any message received with the same msgId will be discarded during the
+     * validity period of a message
+     */
+    double maxMessageAge;
+
+    /**
+     * list of recently received messages
+     * this is used to discard repeated messages
+     */
+    ReceivedMessages receivedMessages;
+
+    /**
+     * Returns the current time in ms
+     */
+    double getCurrentTime();
     static void receiveLoop(zsock_t* pipe, void* args);
     zmsg_t* stringToZmsg(std::string msg);
     ZyreMsgContent* zmsgToZyreMsgContent(zmsg_t *msg);
+
+    /**
+     * Returns true if this message has already been received in the near past
+     * The near past is defined by maxMessageAge in ms
+     *
+     * if the message has not been received already, it is added to the 
+     * list of receivedMessages
+     */
+    bool isMessageRepeated(ZyreMsgContent *msgContent);
 
     /**
      * sends an acknowledgement for an incoming message if required
