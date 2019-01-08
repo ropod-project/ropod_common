@@ -36,18 +36,18 @@ add_executable(${TARGET} ${SOURCE_FILES})
 
 target_link_libraries(${TARGET} ${LIBRARIES})
 
-add_executable(acknowledge_test 
+add_executable(acknowledge_test
     test/acknowledgements_test.cpp
     src/ZyreBaseCommunicator.cpp
 )
-target_link_libraries(acknowledge_test 
+target_link_libraries(acknowledge_test
     ${LIBRARIES}
 )
 
-add_executable(repeated_message_test 
+add_executable(repeated_message_test
     test/repeated_message_test.cpp
     src/ZyreBaseCommunicator.cpp
 )
-target_link_libraries(repeated_message_test 
+target_link_libraries(repeated_message_test
     ${LIBRARIES}
 )

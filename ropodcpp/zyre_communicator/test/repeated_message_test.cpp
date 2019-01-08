@@ -7,12 +7,10 @@ class ZyreNode : public ZyreBaseCommunicator
 {
     public:
     ZyreNode(const std::string &nodeName,
-	    const std::vector<std::string> &groups,
-	    const std::vector<std::string> &messageTypes,
 	    const bool &printAllReceivedMessages,
         const std::string &interface="",
         bool acknowledge = false)
-    : ZyreBaseCommunicator(nodeName, groups, messageTypes, printAllReceivedMessages, interface, acknowledge)
+    : ZyreBaseCommunicator(nodeName, printAllReceivedMessages, interface, acknowledge)
     {};
 
     private:
@@ -57,16 +55,14 @@ std::string getMessage(const std::string &message_type)
 
 int main(int argc, char *argv[])
 {
-    std::vector<std::string> messageTypes;
-    messageTypes.push_back("TASK");
-    messageTypes.push_back("TASK-REQUEST");
-
     std::vector<std::string> groups;
     groups.push_back("group1");
     bool b = true;
 
-    ZyreNode node_1("ZyreNode_test_1", groups, messageTypes, b, "", false);
-    ZyreNode node_2("ZyreNode_test_2", groups, messageTypes, b, "", false);
+    ZyreNode node_1("ZyreNode_test_1", b, "", false);
+    ZyreNode node_2("ZyreNode_test_2", b, "", false);
+    node_1.joinGroup(groups);
+    node_2.joinGroup(groups);
 
     std::string msg1 = getMessage("TASK");
     std::string msg2 = getMessage("TASK-REQUEST");

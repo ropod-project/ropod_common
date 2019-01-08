@@ -7,19 +7,21 @@
 #include <chrono>
 
 ZyreBaseCommunicator::ZyreBaseCommunicator(const std::string &nodeName,
-		 const std::vector<std::string> &groups,
-		 const std::vector<std::string> &messageTypes,
 		 const bool &printAllReceivedMessages,
          const std::string& interface,
-         bool acknowledge)
+         bool acknowledge,
+         bool startImmediately)
 {
     this->params.nodeName = nodeName;
-    this->params.messageTypes = messageTypes;
     this->printAllReceivedMessages = printAllReceivedMessages;
     this->params.groups = std::vector<std::string> {};  // will be filled by this->joinGroup()
     this->acknowledge = acknowledge;
     // TODO: this needs to be specified for each message type
     this->messageInterval = 5000;
+    // TODO: ensure messageInterval * numRetries < maxMessageAge
+    // so that nodes who have already sent an acknowledgement don't
+    // process repeated messages
+    this->numRetries = 5;
     // if same msgId received within 30 seconds, discard it
     this->maxMessageAge = 30000;
 
@@ -30,13 +32,11 @@ ZyreBaseCommunicator::ZyreBaseCommunicator(const std::string &nodeName,
     {
         zyre_set_interface (node, interface.c_str());
     }
-    zyre_start(node);
-    zclock_sleep(this->ZYRESLEEPTIME);
+    if (startImmediately)
+    {
+        this->startZyreNode();
+    }
 
-    joinGroup(groups);
-
-    receiveActor = zactor_new(receiveLoop, this);
-    assert(receiveActor);
 }
 
 ZyreBaseCommunicator::~ZyreBaseCommunicator()
@@ -46,6 +46,24 @@ ZyreBaseCommunicator::~ZyreBaseCommunicator()
     zyre_stop(node);
     zclock_sleep(this->ZYRESLEEPTIME);
     zyre_destroy(&node);
+}
+
+void ZyreBaseCommunicator::startZyreNode()
+{
+    zyre_start(this->node);
+    zclock_sleep(this->ZYRESLEEPTIME);
+
+    receiveActor = zactor_new(receiveLoop, this);
+    assert(receiveActor);
+}
+
+void ZyreBaseCommunicator::setHeaders(const std::map<std::string, std::string> &headers)
+{
+    std::map<std::string, std::string>::const_iterator it;
+    for (it = headers.begin(); it != headers.end(); ++it)
+    {
+        zyre_set_header(this->node, it->first.c_str(), "%s", it->second.c_str());
+    }
 }
 
 void ZyreBaseCommunicator::printNodeName()
@@ -63,15 +81,6 @@ void ZyreBaseCommunicator::printJoinedGroups()
     }
     msg << "\n";
     std::cout << msg.rdbuf();
-}
-
-void ZyreBaseCommunicator::printReceivingMessageTypes()
-{
-    std::cout << params.nodeName << "--- Printing receiving message Types: " << std::endl;
-    for (auto it = params.messageTypes.begin(); it != params.messageTypes.end(); it++)
-    {
-	    std::cout << "    " << *it << std::endl;
-    }
 }
 
 void ZyreBaseCommunicator::receiveLoop(zsock_t *pipe, void *args)
@@ -167,6 +176,24 @@ void ZyreBaseCommunicator::sendAcknowledgement(ZyreMsgContent * msgContent)
         if (root.isMember("header") && root["header"].isMember("type")
             && root["header"].isMember("msgId"))
         {
+            if (root["header"].isMember("receiverIds"))
+            {
+                bool is_self_receiver = false;
+                Json::ArrayIndex size = root["header"]["receiverIds"].size();
+                for (Json::ArrayIndex i = 0; i < size; i++)
+                {
+                    std::string receiverId = root["header"]["receiverIds"][i].asString();
+                    if (receiverId == this->params.nodeName)
+                    {
+                        is_self_receiver = true;
+                        break;
+                    }
+                }
+                if (!is_self_receiver)
+                {
+                    return;
+                }
+            }
             std::string msg_type = root["header"]["type"].asString();
             // only acknowledge known message types
             if (std::find(std::begin(sendAcknowledgementFor),
@@ -306,15 +333,16 @@ bool ZyreBaseCommunicator::requiresAcknowledgement(const Json::Value &root)
     return false;
 }
 
-void ZyreBaseCommunicator::addMessageToQueue(const std::string &msgId, const std::string &message, const std::string &group_or_peer, bool is_shout)
+void ZyreBaseCommunicator::addMessageToQueue(const std::string &msgId, const std::string &message, const std::string &group_or_peer, bool is_shout, const std::vector<std::string> &receiverIds)
 {
     double current_time_ms = getCurrentTime();
     current_time_ms += messageInterval;
 
     ResendMessageParams resend_params;
-    resend_params.number_of_retries_left = 5;
+    resend_params.number_of_retries_left = this->numRetries;
     resend_params.next_retry_time = current_time_ms;
     resend_params.is_shout = is_shout;
+    resend_params.receiverIds = receiverIds;
     if (is_shout)
     {
         resend_params.group = group_or_peer;
@@ -336,8 +364,18 @@ void ZyreBaseCommunicator::checkAndQueueMessage(const std::string &message, cons
     if (requiresAcknowledgement(root))
     {
         std::string msgId = root["header"]["msgId"].asString();
+        std::vector<std::string> receiverIds;
+        if (root["header"].isMember("receiverIds"))
+        {
+            Json::ArrayIndex size = root["header"]["receiverIds"].size();
+            for (Json::ArrayIndex i = 0; i < size; i++)
+            {
+                std::string receiverId = root["header"]["receiverIds"][i].asString();
+                receiverIds.push_back(receiverId);
+            }
+        }
         std::cout << msgId << " requires acknowledgement; adding to queue" << std::endl;
-        addMessageToQueue(msgId, message, group_or_peer, is_shout);
+        addMessageToQueue(msgId, message, group_or_peer, is_shout, receiverIds);
     }
 }
 
@@ -403,8 +441,34 @@ void ZyreBaseCommunicator::processAcknowledgement(ZyreMsgContent *msgContent)
         auto it = messageQueue.find(msgId);
         if (it != messageQueue.end())
         {
-            messageQueue.erase(it);
-            this->sendMessageStatus(msgId, true);
+            // no receiverIds specified, so accept any acknowledgement
+            if (it->second.second.receiverIds.empty())
+            {
+                std::cout << "All acknowledgements received" << std::endl;
+                messageQueue.erase(it);
+                this->sendMessageStatus(msgId, true);
+            }
+            else
+            {
+                char * name = zyre_peer_header_value(this->node, peer.c_str(), "name");
+                std::string name_str(name);
+                auto &receiverIds = it->second.second.receiverIds;
+                auto recp_it = std::find(receiverIds.begin(), receiverIds.end(), name_str);
+                if (recp_it != receiverIds.end())
+                {
+                    std::cout << "Accepted acknowledgement from " << peer << " (" << name_str << ")" << std::endl;
+                    it->second.second.receiverIds.erase(recp_it);
+                    // if we've received acknowledgements from all receiverIds
+                    if (it->second.second.receiverIds.empty())
+                    {
+                        std::cout << "All acknowledgements received" << std::endl;
+                        messageQueue.erase(it);
+                        this->sendMessageStatus(msgId, true);
+                    }
+                }
+                free(name);
+            }
+
         }
     }
 }
@@ -443,6 +507,7 @@ bool ZyreBaseCommunicator::isMessageRepeated(ZyreMsgContent *msgContent)
             receivedMessages[msgId] = currentTime;
         }
     }
+    return false;
 }
 
 double ZyreBaseCommunicator::getCurrentTime()
