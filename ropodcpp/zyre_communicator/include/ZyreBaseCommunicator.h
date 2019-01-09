@@ -13,7 +13,6 @@ struct ZyreParams
 {
     std::string nodeName;
     std::vector<std::string> groups;
-    std::vector<std::string> messageTypes;
 };
 
 struct Peer
@@ -59,18 +58,34 @@ struct ResendMessageParams
      * If method is whisper, the peer to whisper to
      */
     std::string peer;
+    /**
+     * list of receiverIds from whom we are yet to receive an acknowledgement
+     */
+    std::vector<std::string> receiverIds;
 };
 
 class ZyreBaseCommunicator {
     public:
+    /**
+     * nodeName: name of zyre node
+     * groups: list of groups to join if startImmediately is true
+     * printAllReceivedMessages: prints all received events for debugging purposes
+     * interface: network interface to use (if blank, zyre decides which one)
+     * acknowledge: if true, messages that require acknowledgement will be acknowledged
+     * startImmediately: if true, the node will start in the constructor (this means headers cannot be set)
+     */
     ZyreBaseCommunicator(const std::string &nodeName,
-	    const std::vector<std::string> &groups,
-	    const std::vector<std::string> &messageTypes,
 	    const bool &printAllReceivedMessages,
         const std::string& interface="",
-        bool acknowledge = false);
+        bool acknowledge = false,
+        bool startImmediately=true);
     ~ZyreBaseCommunicator();
 
+    /**
+     * start the zyre node and join specified groups
+     */
+    void startZyreNode();
+    void setHeaders(const std::map<std::string, std::string> &headers);
     void shout(const std::string &message);
     void shout(const std::string &message, const std::string &group);
     void shout(const std::string &message, const std::vector<std::string> &groups);
@@ -93,11 +108,9 @@ class ZyreBaseCommunicator {
 
     std::string getNodeName() {return params.nodeName;}
     std::vector<std::string> getJoinedGroups() {return params.groups;}
-    std::vector<std::string> getReceivingMessageTypes() {return params.messageTypes;}
     ZyreParams getZyreParams() {return params;}
     void printNodeName();
     void printJoinedGroups();
-    void printReceivingMessageTypes();
     void printZyreMsgContent(const ZyreMsgContent &msgContent);
     std::string getTimeStamp();
 
@@ -170,6 +183,9 @@ class ZyreBaseCommunicator {
     // interval between resending messages in ms
     int messageInterval;
 
+    // number of times to retry sending messages
+    int numRetries;
+
     /**
      * maximum time after arrival in ms during which a message is considered valid
      * i.e. any message received with the same msgId will be discarded during the
@@ -211,7 +227,7 @@ class ZyreBaseCommunicator {
     /**
      * Queue messages until an acknowledgement is received
      */
-    void addMessageToQueue(const std::string &msgId, const std::string &message, const std::string &group_or_peer, bool is_shout);
+    void addMessageToQueue(const std::string &msgId, const std::string &message, const std::string &group_or_peer, bool is_shout, const std::vector<std::string> &receiverIds);
     /**
      * check if message requires acknowledgement and add to the queue if necessary
      */

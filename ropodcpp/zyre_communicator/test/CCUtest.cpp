@@ -6,10 +6,8 @@ class CCU : public ZyreBaseCommunicator
 {
     public:
     CCU(const std::string &nodeName,
-	    const std::vector<std::string> &groups,
-	    const std::vector<std::string> &messageTypes,
 	    const bool &printAllReceivedMessages)
-    : ZyreBaseCommunicator(nodeName, groups, messageTypes, printAllReceivedMessages)
+    : ZyreBaseCommunicator(nodeName, printAllReceivedMessages)
     {};
 
     private:
@@ -34,16 +32,20 @@ int main(int argc, char *argv[])
     bool b = true;
 
     {
-        CCU CCU_test_1("CCU_test_1", groups, messageTypes, b);
-        CCU CCU_test_2("CCU_test_2", groups, messageTypes, b);
+        CCU CCU_test_1("CCU_test_1", b);
+        CCU CCU_test_2("CCU_test_2", b);
+        CCU_test_1.joinGroup(groups);
+        CCU_test_2.joinGroup(groups);
         CCU_test_1.printJoinedGroups();
         CCU_test_2.printJoinedGroups();
         zclock_sleep(3000);
     }
 
 
-    CCU CCU_test_1("CCU_test_1", groups, messageTypes, b);
-    CCU CCU_test_2("CCU_test_2", groups, messageTypes, b);
+    CCU CCU_test_1("CCU_test_1", b);
+    CCU CCU_test_2("CCU_test_2", b);
+    CCU_test_1.joinGroup(groups);
+    CCU_test_2.joinGroup(groups);
 
     for (int i = 0; i < 10; i++)
     {
