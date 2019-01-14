@@ -17,7 +17,7 @@ ZYRE_SLEEP_TIME = 0.250  # type: float
 
 class PyreBaseCommunicator(pyre.Pyre):
     def __init__(self, node_name, groups, message_types, verbose=False,
-                 interface=None, acknowledge=False, ropod_uuid=None, extra_headers=None,
+                 interface=None, acknowledge=True, ropod_uuid=None, extra_headers=None,
                  retries=5):
         """
 
@@ -72,10 +72,9 @@ class PyreBaseCommunicator(pyre.Pyre):
         self.pipe = zhelper.zthread_fork(self.ctx, self.receive_loop)
 
         self.acknowledge = acknowledge
+        self.unacknowledged_msgs = {}
+        self.number_of_retries = retries
 
-        if self.acknowledge:
-            self.unacknowledged_msgs = {}
-            self.number_of_retries = retries
     def receive_msg_cb(self, msg_content):
         pass
 
@@ -124,7 +123,7 @@ class PyreBaseCommunicator(pyre.Pyre):
         while not self.terminated:
             try:
                 items = dict(poller.poll(1000))
-                if not items:
+                if not items and self.acknowledge:
                     self.resend_message_cb()
                 elif pipe in items and items[pipe] == zmq.POLLIN:
                     message = pipe.recv()
