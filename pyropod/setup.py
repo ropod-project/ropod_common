@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-setup(name='ropod_common',
+setup(name='ropod-common',
       version='2.2.0',
       description='Packages for common ROPOD functionalities',
       author='Argentina Ortega Sainz',
