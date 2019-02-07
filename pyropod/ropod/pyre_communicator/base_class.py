@@ -26,7 +26,7 @@ class RopodPyre(PyreBase):
         :param message_types: a list of strings containing the message types to acknowledge
         :param verbose: boolean indicating whether to print output to the terminal
         :param interface: sets the interface to be used by the node
-        :param acknowledge: boolean indicating whether the node sould send acknowledgements for
+        :param acknowledge: boolean indicating whether the node should send acknowledgements for
                             shout and whispered messages
         :param ropod_uuid: a string containing the hexadecimal version of a nodes uuid
         :param extra_headers: a dictionary containing the additional headers
@@ -191,7 +191,8 @@ class RopodPyre(PyreBase):
             # NOTE: json.dumps must be used instead of str, since it returns
             # the correct type of string
             if self.acknowledge:
-                self.check_msg_retries(msg, "WHISPER", peer=peer, peers=peers, peer_name=peer_name, peer_names=peer_names)
+                self.check_msg_retries(msg, "WHISPER", peer=peer, peers=peers, peer_name=peer_name,
+                                       peer_names=peer_names)
 
             message = json.dumps(msg).encode('utf-8')
         else:
@@ -294,7 +295,7 @@ class RopodPyre(PyreBase):
             self.unacknowledged_msgs[msg_id]['msg_args'] = dict()
             self.unacknowledged_msgs[msg_id]['msg_args']['msg'] = message
             self.unacknowledged_msgs[msg_id]['msg_args'].update(kwargs)
-            deadline = timedelta(seconds=5**5)
+            deadline = timedelta(seconds=5 ** 5)
             self.unacknowledged_msgs[msg_id]['reply_by'] = self.get_time_stamp(deadline)
 
         # TODO This needs to be probably adapted by message type
@@ -304,7 +305,7 @@ class RopodPyre(PyreBase):
 
     def add_next_retry(self, msg_id):
         retry = self.unacknowledged_msgs[msg_id]['retry_number']
-        timeout = 5**retry
+        timeout = 5 ** retry
         print(timeout, retry)
         next_attempt = timedelta(seconds=timeout)
         self.unacknowledged_msgs[msg_id]['last_retry'] = self.unacknowledged_msgs[msg_id]['next_retry']
@@ -338,7 +339,6 @@ class RopodPyre(PyreBase):
                         if not self.unacknowledged_msgs[msg_id]['receiverIds']:
                             print("All receiverIds have acknowledged message %s" % msg_id)
                             self.unacknowledged_msgs.pop(msg_id)
-
 
     def resend_message_cb(self):
         """
@@ -384,9 +384,9 @@ class RopodPyre(PyreBase):
 
 def main():
     test = RopodPyre('test',
-                         ["OTHER-GROUP", "CHAT", "TEST", "PYRE"],
-                         ["TEST_MSG"],
-                         True, acknowledge=True)
+                     ["OTHER-GROUP", "CHAT", "TEST", "PYRE"],
+                     ["TEST_MSG"],
+                     True, acknowledge=True)
 
     try:
         test.start()
