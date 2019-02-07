@@ -395,33 +395,7 @@ def main():
             time.sleep(0.5)
     except (KeyboardInterrupt, SystemExit):
         test.shutdown()
-    '''
 
-    node1 = PyreBaseCommunicator('node1',
-                                ["TEST-GROUP"],
-                                ["TEST_MSG"],
-                                True, acknowledge=True)
-    msg_id = node1.generate_uuid()
-    msg = {'header':
-            {'type': 'TEST_MSG', 'msgId': msg_id, 'receiverIds':['node2', 'node3']},
-           'payload':
-           {'msg': 'test'}}
-
-    node1.shout(msg)
-    time.sleep(6)
-
-    node2 = PyreBaseCommunicator('node2',
-                                ["TEST-GROUP"],
-                                ["TEST_MSG"],
-                                False, acknowledge=True)
-    node3 = PyreBaseCommunicator('node3',
-                                ["TEST-GROUP"],
-                                ["TEST_MSG"],
-                                False, acknowledge=True)
-    time.sleep(6)
-    node1.shutdown()
-    node2.shutdown()
-    node3.shutdown()
 
 if __name__ == '__main__':
     main()
