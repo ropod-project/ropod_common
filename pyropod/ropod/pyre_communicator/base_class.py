@@ -32,7 +32,7 @@ class RopodPyre(PyreBase):
         :param extra_headers: a dictionary containing the additional headers
         """
         super(RopodPyre, self).__init__(node_name, groups, message_types,
-                                            verbose=False, interface=None)
+                                        verbose=verbose, interface=None)
 
         self.acknowledge = acknowledge
 
