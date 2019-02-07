@@ -41,27 +41,49 @@ class Task(object):
     NORMAL = 2
     LOW = 3
 
-    def __init__(self):
-        self.id = ''
-        self.robot_actions = dict()
-        self.cart_type = ''
-        self.cart_id = ''
-        self.team_robot_ids = list()
-        self.earliest_start_time = -1.
-        self.latest_start_time = -2.
-        self.estimated_duration = -1.
-        self.start_time = -1.
-        self.finish_time = -2.
-        self.pickup_pose = Area()
-        self.delivery_pose = Area()
-        self.status = TaskStatus()
-        self.priority = 0
+    def __init__(self, id='', robot_actions=dict(), deviceType='', deviceId='', team_robot_ids=list(),
+                 earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1, start_time=-1,
+                 finish_time=-1, pickup_pose=Area(), delivery_pose=Area(), status=TaskStatus(), priority=NORMAL):
+        self.id = id
+        self.robot_actions = robot_actions
+        self.deviceType = deviceType
+        self.deviceId = deviceId
+        self.team_robot_ids = team_robot_ids
+        self.earliest_start_time = earliest_start_time
+        self.latest_start_time = latest_start_time
+        self.estimated_duration = estimated_duration
+        self.start_time = start_time
+        self.finish_time = finish_time
+
+        if isinstance(pickup_pose, Area):
+            self.pickup_pose = pickup_pose
+        else:
+            raise Exception('pickup_pose must be an object of type Area')
+
+        if isinstance(delivery_pose, Area):
+            self.delivery_pose = delivery_pose
+        else:
+            raise Exception('delivery_pose must be an object of type Area')
+
+        if isinstance(status, TaskStatus):
+            self.status = status
+        else:
+            raise Exception("status must be an object of TaskStatus type")
+
+        if priority in (self.EMERGENCY, self.NORMAL, self.HIGH, self.LOW):
+            self.priority = priority
+        else:
+            raise Exception("Priority must have one of the following values:\n"
+                            "0) Urgent\n"
+                            "1) High\n"
+                            "2) Normal\n"
+                            "3) Low")
 
     def to_dict(self):
         task_dict = dict()
         task_dict['id'] = self.id
-        task_dict['cart_type'] = self.cart_type
-        task_dict['cart_id'] = self.cart_id
+        task_dict['deviceType'] = self.deviceType
+        task_dict['deviceId'] = self.deviceId
         task_dict['team_robot_ids'] = self.team_robot_ids
         task_dict['earliest_start_time'] = self.earliest_start_time
         task_dict['latest_start_time'] = self.latest_start_time
@@ -84,8 +106,8 @@ class Task(object):
     def from_dict(task_dict):
         task = Task()
         task.id = task_dict['id']
-        task.cart_type = task_dict['cart_type']
-        task.cart_id = task_dict['cart_id']
+        task.deviceType = task_dict['deviceType']
+        task.deviceId = task_dict['deviceId']
         task.team_robot_ids = task_dict['team_robot_ids']
         task.earliest_start_time = task_dict['earliest_start_time']
         task.latest_start_time = task_dict['latest_start_time']
