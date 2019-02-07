@@ -8,6 +8,7 @@ from pyre import zhelper
 import ast
 from datetime import timezone, timedelta, datetime
 import dateutil.parser as date_parser
+from ropod.utils.timestamp import TimeStamp as ts
 
 from pyre_base.zyre_params import ZyreMsg
 from pyre_base.base_class import PyreBase
@@ -32,7 +33,7 @@ class RopodPyre(PyreBase):
         :param extra_headers: a dictionary containing the additional headers
         """
         super(RopodPyre, self).__init__(node_name, groups, message_types,
-                                        verbose=verbose, interface=None)
+                                        verbose=verbose, interface=interface)
 
         self.acknowledge = acknowledge
 
@@ -165,14 +166,14 @@ class RopodPyre(PyreBase):
         if groups:
             if isinstance(groups, list):
                 for group in groups:
-                    super(RopodPyre, self).shout(group, message)
+                    super(PyreBase, self).shout(group, message)
                     time.sleep(ZYRE_SLEEP_TIME)
             else:
                 # TODO Do we need formatted strings?
-                super(RopodPyre, self).shout(groups, message)
+                super(PyreBase, self).shout(groups, message)
         else:
             for group in self.groups():
-                super(RopodPyre, self).shout(group, message)
+                super(PyreBase, self).shout(group, message)
 
     def whisper(self, msg, peer=None, peers=None, peer_name=None, peer_names=None):
         """
@@ -203,7 +204,7 @@ class RopodPyre(PyreBase):
             return
 
         if peer:
-            super(RopodPyre, self).whisper(peer, message)
+            super(PyreBase, self).whisper(peer, message)
         elif peers:
             for peer in peers:
                 time.sleep(ZYRE_SLEEP_TIME)
@@ -212,12 +213,12 @@ class RopodPyre(PyreBase):
             valid_uuids = [k for k, v in self.peer_directory.items() if v == peer_name]
             for peer_uuid in valid_uuids:
                 time.sleep(ZYRE_SLEEP_TIME)
-                super(RopodPyre, self).whisper(peer_uuid, message)
+                super(PyreBase, self).whisper(peer_uuid, message)
         elif peer_names:
             for peer_name in peer_names:
                 valid_uuids = [k for k, v in self.peer_directory.items() if v == peer_name]
                 for peer_uuid in valid_uuids:
-                    super(RopodPyre, self).whisper(peer_uuid, message)
+                    super(PyreBase, self).whisper(peer_uuid, message)
                 time.sleep(ZYRE_SLEEP_TIME)
 
     def send_acknowledgment(self, zyre_msg):
@@ -284,7 +285,7 @@ class RopodPyre(PyreBase):
         else:
             self.unacknowledged_msgs[msg_id] = dict()
             self.unacknowledged_msgs[msg_id]['retry_number'] = 0
-            current_ts = self.get_time_stamp()
+            current_ts = ts.get_time_stamp()
             self.unacknowledged_msgs[msg_id]['first_attempt'] = current_ts
             self.unacknowledged_msgs[msg_id]['last_retry'] = current_ts
             self.unacknowledged_msgs[msg_id]['zyre_msg_type'] = zyre_msg_type
@@ -296,11 +297,11 @@ class RopodPyre(PyreBase):
             self.unacknowledged_msgs[msg_id]['msg_args']['msg'] = message
             self.unacknowledged_msgs[msg_id]['msg_args'].update(kwargs)
             deadline = timedelta(seconds=5 ** 5)
-            self.unacknowledged_msgs[msg_id]['reply_by'] = self.get_time_stamp(deadline)
+            self.unacknowledged_msgs[msg_id]['reply_by'] = ts.get_time_stamp(deadline)
 
         # TODO This needs to be probably adapted by message type
         next_attempt = timedelta(seconds=5)
-        self.unacknowledged_msgs[msg_id]['next_retry'] = self.get_time_stamp(next_attempt)
+        self.unacknowledged_msgs[msg_id]['next_retry'] = ts.get_time_stamp(next_attempt)
         print(self.unacknowledged_msgs[msg_id])
 
     def add_next_retry(self, msg_id):
@@ -309,7 +310,7 @@ class RopodPyre(PyreBase):
         print(timeout, retry)
         next_attempt = timedelta(seconds=timeout)
         self.unacknowledged_msgs[msg_id]['last_retry'] = self.unacknowledged_msgs[msg_id]['next_retry']
-        self.unacknowledged_msgs[msg_id]['next_retry'] = self.get_time_stamp(next_attempt)
+        self.unacknowledged_msgs[msg_id]['next_retry'] = ts.get_time_stamp(next_attempt)
         self.unacknowledged_msgs[msg_id]['retry_number'] = retry + 1
 
     def check_unacknowledged_msgs(self, zyre_msg):
