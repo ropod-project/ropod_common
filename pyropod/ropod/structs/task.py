@@ -18,8 +18,8 @@ class TaskRequest(object):
         self.earliest_start_time = -1.
         self.latest_start_time = -2.
         self.user_id = ''
-        self.cart_type = ''
-        self.cart_id = ''
+        self.load_type = ''
+        self.load_id = ''
         self.priority = -1
 
     def to_dict(self):
@@ -29,8 +29,8 @@ class TaskRequest(object):
         request_dict['earliest_start_time'] = self.earliest_start_time
         request_dict['latest_start_time'] = self.latest_start_time
         request_dict['user_id'] = self.user_id
-        request_dict['cart_type'] = self.cart_type
-        request_dict['cart_id'] = self.cart_id
+        request_dict['load_type'] = self.load_type
+        request_dict['load_id'] = self.load_id
         request_dict['priority'] = self.priority
         return request_dict
 
@@ -38,18 +38,18 @@ class TaskRequest(object):
     def from_dict(request_dict):
 
         request = TaskRequest()
-        request.user_id = request_dict["payload"]["userId"]
-        request.cart_type = request_dict["payload"]["deviceType"]
-        request.cart_id = request_dict["payload"]["deviceId"]
-        request.earliest_start_time = request_dict["payload"]["earliestStartTime"]
-        request.latest_start_time = request_dict["payload"]["latestStartTime"]
+        request.load_type = request_dict["loadType"]
+        request.load_id = request_dict["loadId"]
+        request.user_id = request_dict["userId"]
+        request.earliest_start_time = request_dict["earliestStartTime"]
+        request.latest_start_time = request_dict["latestStartTime"]
 
-        request.pickup_pose = request_dict["payload"]["pickupLocation"]
-        request.pickup_pose.floor_number = request_dict["payload"]["pickupLocationLevel"]
+        request.pickup_pose = request_dict["pickupLocation"]
+        request.pickup_pose.floor_number = request_dict["pickupLocationLevel"]
 
-        request.delivery_pose = request_dict["payload"]["deliveryLocation"]
-        request.delivery_pose.floor_number = request_dict["payload"]["deliveryLocationLevel"]
-        request.priority = request_dict["payload"]["priority"]
+        request.delivery_pose = request_dict["deliveryLocation"]
+        request.delivery_pose.floor_number = request_dict["deliveryLocationLevel"]
+        request.priority = request_dict["priority"]
         return request
 
 
@@ -59,13 +59,13 @@ class Task(object):
     NORMAL = 2
     LOW = 3
 
-    def __init__(self, id='', robot_actions=dict(), deviceType='', deviceId='', team_robot_ids=list(),
+    def __init__(self, id='', robot_actions=dict(), loadType='', loadId='', team_robot_ids=list(),
                  earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1, start_time=-1,
                  finish_time=-1, pickup_pose=Area(), delivery_pose=Area(), status=TaskStatus(), priority=NORMAL):
         self.id = id
         self.robot_actions = robot_actions
-        self.deviceType = deviceType
-        self.deviceId = deviceId
+        self.loadType = loadType
+        self.loadId = loadId
         self.team_robot_ids = team_robot_ids
         self.earliest_start_time = earliest_start_time
         self.latest_start_time = latest_start_time
@@ -100,8 +100,8 @@ class Task(object):
     def to_dict(self):
         task_dict = dict()
         task_dict['id'] = self.id
-        task_dict['deviceType'] = self.deviceType
-        task_dict['deviceId'] = self.deviceId
+        task_dict['loadType'] = self.loadType
+        task_dict['loadId'] = self.loadId
         task_dict['team_robot_ids'] = self.team_robot_ids
         task_dict['earliest_start_time'] = self.earliest_start_time
         task_dict['latest_start_time'] = self.latest_start_time
@@ -124,8 +124,8 @@ class Task(object):
     def from_dict(task_dict):
         task = Task()
         task.id = task_dict['id']
-        task.deviceType = task_dict['deviceType']
-        task.deviceId = task_dict['deviceId']
+        task.loadType = task_dict['loadType']
+        task.loadId = task_dict['loadId']
         task.team_robot_ids = task_dict['team_robot_ids']
         task.earliest_start_time = task_dict['earliest_start_time']
         task.latest_start_time = task_dict['latest_start_time']
