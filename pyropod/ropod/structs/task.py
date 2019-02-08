@@ -1,3 +1,4 @@
+from ropod.utils.uuid import generate_uuid
 from ropod.structs.area import Area
 from ropod.structs.action import Action
 from ropod.structs.status import TaskStatus
@@ -64,7 +65,11 @@ class Task(object):
     def __init__(self, id='', robot_actions=dict(), loadType='', loadId='', team_robot_ids=list(),
                  earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1, start_time=-1,
                  finish_time=-1, pickup_pose=Area(), delivery_pose=Area(), status=TaskStatus(), priority=NORMAL):
-        self.id = id
+
+        if not id:
+            self.id = generate_uuid()
+        else:
+            self.id = id
         self.robot_actions = robot_actions
         self.loadType = loadType
         self.loadId = loadId

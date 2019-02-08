@@ -9,6 +9,7 @@ import ast
 from datetime import timezone, timedelta, datetime
 import dateutil.parser as date_parser
 from ropod.utils.timestamp import TimeStamp as ts
+from ropod.utils.uuid import generate_uuid
 
 from pyre_base.zyre_params import ZyreMsg
 from pyre_base.base_class import PyreBase
@@ -257,7 +258,7 @@ class RopodPyre(PyreBase):
                 payload = dict()
 
                 header["type"] = "ACKNOWLEDGEMENT"
-                header["msgId"] = self.generate_uuid()
+                header["msgId"] = generate_uuid()
 
                 payload["receivedMsg"] = contents["header"]["msgId"]
 
@@ -372,7 +373,7 @@ class RopodPyre(PyreBase):
         print(self.peers())
 
         time.sleep(ZYRE_SLEEP_TIME)
-        msg = {'header': {'type': 'TEST_MSG', 'msgId': self.generate_uuid()},
+        msg = {'header': {'type': 'TEST_MSG', 'msgId': generate_uuid()},
                'payload': {'msg': 'test'}}
 
         for group in self.own_groups():
