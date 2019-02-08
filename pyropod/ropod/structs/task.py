@@ -34,6 +34,24 @@ class TaskRequest(object):
         request_dict['priority'] = self.priority
         return request_dict
 
+    @staticmethod
+    def from_dict(request_dict):
+
+        request = TaskRequest()
+        request.user_id = request_dict["payload"]["userId"]
+        request.cart_type = request_dict["payload"]["deviceType"]
+        request.cart_id = request_dict["payload"]["deviceId"]
+        request.earliest_start_time = request_dict["payload"]["earliestStartTime"]
+        request.latest_start_time = request_dict["payload"]["latestStartTime"]
+
+        request.pickup_pose = request_dict["payload"]["pickupLocation"]
+        request.pickup_pose.floor_number = request_dict["payload"]["pickupLocationLevel"]
+
+        request.delivery_pose = request_dict["payload"]["deliveryLocation"]
+        request.delivery_pose.floor_number = request_dict["payload"]["deliveryLocationLevel"]
+        request.priority = request_dict["payload"]["priority"]
+        return request
+
 
 class Task(object):
     EMERGENCY = 0
