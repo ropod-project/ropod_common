@@ -44,10 +44,12 @@ class TaskRequest(object):
         request.earliest_start_time = request_dict["earliestStartTime"]
         request.latest_start_time = request_dict["latestStartTime"]
 
-        request.pickup_pose = request_dict["pickupLocation"]
+        request.pickup_pose = Area()
+        request.pickup_pose.name = request_dict["pickupLocation"]
         request.pickup_pose.floor_number = request_dict["pickupLocationLevel"]
 
-        request.delivery_pose = request_dict["deliveryLocation"]
+        request.delivery_pose = Area()
+        request.delivery_pose.name = request_dict["deliveryLocation"]
         request.delivery_pose.floor_number = request_dict["deliveryLocationLevel"]
         request.priority = request_dict["priority"]
         return request
