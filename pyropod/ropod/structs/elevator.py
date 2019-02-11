@@ -30,6 +30,21 @@ class ElevatorRequest(object):
         request_dict['status'] = self.status
         return request_dict
 
+    @staticmethod
+    def from_dict(request):
+        robot_request = ElevatorRequest()
+
+        robot_request.query_id = request['query_id']
+        robot_request.command = request['command']
+        robot_request.start_floor = request['startFloor']
+        robot_request.goal_floor = request['goalFloor']
+        robot_request.task_id = request['taskId']
+        robot_request.load = request['load']
+        robot_request.robot_id = request['robotId']
+        robot_request.status = request['status']
+        return robot_request
+
+
 class Elevator(object):
     def __init__(self):
         self.elevator_id = -1
