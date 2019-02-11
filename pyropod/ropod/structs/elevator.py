@@ -5,17 +5,20 @@ class ElevatorRequests(object):
 
 
 class ElevatorRequest(object):
-    def __init__(self):
-        self.elevator_id = -1
-        self.operational_mode = ''
-        self.start_floor = -1
-        self.goal_floor = -1
-        self.query_id = ''
-        self.command = ''
-        self.task_id = ''
-        self.load = ''
-        self.robot_id = ''
-        self.status = ''
+    def __init__(self, start_floor, goal_floor, command, elevator_id=1, mode='ROBOT', query_id=None,
+                 task_id=None, load=None, robot_id=None, status='pending'):
+        self.elevator_id = elevator_id
+        self.operational_mode = mode
+
+        self.start_floor = start_floor
+        self.goal_floor = goal_floor
+        self.command = command
+
+        self.query_id = query_id
+        self.task_id = task_id
+        self.load = load
+        self.robot_id = robot_id
+        self.status = status
 
     def to_dict(self):
         request_dict = dict()
@@ -24,10 +27,11 @@ class ElevatorRequest(object):
         request_dict['startFloor'] = self.start_floor
         request_dict['goalFloor'] = self.goal_floor
         request_dict['queryId'] = self.query_id
-        request_dict['command'] = self.task_id
+        request_dict['command'] = self.command
         request_dict['load'] = self.load
         request_dict['robotId'] = self.robot_id
         request_dict['status'] = self.status
+        request_dict['taskId'] = self.task_id
         return request_dict
 
     @staticmethod
