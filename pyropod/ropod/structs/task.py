@@ -149,3 +149,21 @@ class Task(object):
                 action = Action.from_dict(action_dict)
                 task.robot_actions[robot_id].append(action)
         return task
+
+    @staticmethod
+    def from_request(request):
+        assert(request, TaskRequest)
+
+        task = Task()
+        task.load_type = request.load_type
+        task.load_id = request.load_id
+        task.earliest_start_time = request.earliest_start_time
+        task.latest_start_time = request.latest_start_time
+        task.pickup_pose = request.pickup_pose
+        task.delivery_pose = request.delivery_pose
+        task.priority = request.priority
+        task.status.status = "unallocated" # TODO This should be standardized
+        task.status.task_id = task.id
+        task.team_robot_ids = None
+
+        return task
