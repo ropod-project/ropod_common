@@ -8,22 +8,25 @@ Abstract Base Class to enable comfortable zyre communication through inheritance
 ## Install
 
 
-Install pyre
+### Python
 
+After cloning to the repository, install the requirements:
 
 ```
-sudo pip3 install https://github.com/ropod-project/pyre/archive/master.zip
+sudo pip3 install -r requirements.txt
 ```
 
+Then install the pyre base class:
 
+```
+sudo pip3 install -e .
+```
+
+### C++
+
+The C++ base class must be located in `/opt/ropod/`, the recommended way to do it is:
 
 ```
 git clone git@git.ropod.org:ropod/ropod_common.git
 sudo mv ropod_common /opt/ropod/
-```
-
-For the pyre base class, you can run:
-
-```
-sudo pip3 install -e .
 ```

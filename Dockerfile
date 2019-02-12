@@ -18,8 +18,7 @@ RUN apt-get -y update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 ADD . /opt/ropod/ropod_common/
-WORKDIR /opt/ropod/ropod_common/
+WORKDIR /opt/ropod/ropod_common/pyropod
 RUN python3 -m pip install --upgrade pip \
-    && pip3 install https://github.com/ropod-project/pyre/archive/master.zip \
     && pip3 install -r requirements.txt && \
     python3 setup.py develop

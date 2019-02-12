@@ -1,3 +1,4 @@
+import os
 import pyre
 import time
 import uuid
@@ -6,48 +7,35 @@ import zmq
 from pyre import zhelper
 import ast
 from datetime import timezone, timedelta, datetime
+import dateutil.parser as date_parser
+from ropod.utils.timestamp import TimeStamp as ts
 
-# from zyre_params import ZyreMsg
-from pyre_communicator.zyre_params import ZyreMsg
+from pyre_base.zyre_params import ZyreMsg
+from pyre_base.base_class import PyreBase
 
 ZYRE_SLEEP_TIME = 0.250  # type: float
 
 
-class PyreBaseCommunicator(pyre.Pyre):
+class RopodPyre(PyreBase):
     def __init__(self, node_name, groups, message_types, verbose=False,
-                 interface=None, acknowledge=False, ropod_uuid=None, extra_headers=None):
+                 interface=None, acknowledge=True, ropod_uuid=None, extra_headers=None,
+                 retries=5):
         """
 
         :param node_name: a string containing the name of the node
         :param groups: a list of strings containing the groups the node will join
         :param message_types: a list of strings containing the message types to acknowledge
         :param verbose: boolean indicating whether to print output to the terminal
-        :param interface: sets the interface to be used by the node (Not implemented)
-        :param acknowledge: boolean indicating whether the node sould send acknowledgements for
+        :param interface: sets the interface to be used by the node
+        :param acknowledge: boolean indicating whether the node should send acknowledgements for
                             shout and whispered messages
         :param ropod_uuid: a string containing the hexadecimal version of a nodes uuid
         :param extra_headers: a dictionary containing the additional headers
         """
-        super(PyreBaseCommunicator, self).__init__(name=node_name)
+        super(RopodPyre, self).__init__(node_name, groups, message_types,
+                                        verbose=verbose, interface=interface)
 
-        self.group_names = groups
         self.acknowledge = acknowledge
-
-        assert isinstance(message_types, list)
-        self.message_types = message_types
-        self.peer_directory = {}
-
-        if interface:
-            self.set_interface(interface)
-            self.interface = interface
-
-        self.verbose = verbose
-
-        assert isinstance(groups, list)
-        for group in groups:
-            self.join(group)
-            time.sleep(ZYRE_SLEEP_TIME)
-        self.terminated = False
 
         self.set_header('name', node_name)
         if ropod_uuid:
@@ -59,47 +47,27 @@ class PyreBaseCommunicator(pyre.Pyre):
             for key in extra_headers:
                 self.set_header(key, extra_headers[key])
 
-        self.start()
+        self.acknowledge = acknowledge
+        self.unacknowledged_msgs = {}
+        self.number_of_retries = retries
 
-        self.ctx = zmq.Context()
-        self.pipe = zhelper.zthread_fork(self.ctx, self.receive_loop)
+        if self.acknowledge:
+            self.unacknowledged_msgs = {}
+            self.number_of_retries = retries
 
     def receive_msg_cb(self, msg_content):
         pass
-
-    def groups(self):
-        return self.own_groups()
 
     def convert_zyre_msg_to_dict(self, msg):
         try:
             return ast.literal_eval(msg)
         except ValueError:
-            return json.loads(msg)
-        except Exception as e:
-            print("Couldn't convert zyre_msg to dictionary")
-            print(e)
-            return None
-
-    def leave_groups(self, groups):
-        for group in groups:
-            self.leave(group)
-
-    def generate_uuid(self):
-        """
-        Returns a string containing a random uuid
-        """
-        return str(uuid.uuid4())
-
-    def get_time_stamp(self, timedelta=None):
-        """
-        Returns a string containing the time stamp in ISO formato
-        @param timedelta    datetime.timedelta object specifying the difference
-                            between today and the desired date
-        """
-        if timedelta is None:
-            return datetime.now(timezone.utc).isoformat()
-        else:
-            return (datetime.now(timezone.utc) + timedelta).isoformat()
+            try:
+                return json.loads(msg)
+            except Exception as e:
+                print("Couldn't convert zyre_msg to dictionary")
+                print(e)
+                return None
 
     def receive_loop(self, ctx, pipe):
 
@@ -109,8 +77,10 @@ class PyreBaseCommunicator(pyre.Pyre):
 
         while not self.terminated:
             try:
-                items = dict(poller.poll())
-                if pipe in items and items[pipe] == zmq.POLLIN:
+                items = dict(poller.poll(1000))
+                if not items and self.acknowledge:
+                    self.resend_message_cb()
+                elif pipe in items and items[pipe] == zmq.POLLIN:
                     message = pipe.recv()
                     if message.decode('utf-8') == "$$STOP":
                         break
@@ -160,6 +130,7 @@ class PyreBaseCommunicator(pyre.Pyre):
                     if zyre_msg.msg_type in ("SHOUT", "WHISPER"):
                         if self.acknowledge:
                             self.send_acknowledgment(zyre_msg)
+                            self.check_unacknowledged_msgs(zyre_msg)
 
                     self.zyre_event_cb(zyre_msg)
 
@@ -186,6 +157,8 @@ class PyreBaseCommunicator(pyre.Pyre):
         if isinstance(msg, dict):
             # NOTE: json.dumps must be used instead of str, since it returns
             # the correct type of string
+            if self.acknowledge:
+                self.check_msg_retries(msg, "SHOUT", groups=groups)
             message = json.dumps(msg).encode('utf-8')
         else:
             message = msg.encode('utf-8')
@@ -193,14 +166,14 @@ class PyreBaseCommunicator(pyre.Pyre):
         if groups:
             if isinstance(groups, list):
                 for group in groups:
-                    super(PyreBaseCommunicator, self).shout(group, message)
+                    super(PyreBase, self).shout(group, message)
                     time.sleep(ZYRE_SLEEP_TIME)
             else:
                 # TODO Do we need formatted strings?
-                super(PyreBaseCommunicator, self).shout(groups, message)
+                super(PyreBase, self).shout(groups, message)
         else:
             for group in self.groups():
-                super(PyreBaseCommunicator, self).shout(group, message)
+                super(PyreBase, self).shout(group, message)
 
     def whisper(self, msg, peer=None, peers=None, peer_name=None, peer_names=None):
         """
@@ -218,17 +191,20 @@ class PyreBaseCommunicator(pyre.Pyre):
         if isinstance(msg, dict):
             # NOTE: json.dumps must be used instead of str, since it returns
             # the correct type of string
+            if self.acknowledge:
+                self.check_msg_retries(msg, "WHISPER", peer=peer, peers=peers, peer_name=peer_name,
+                                       peer_names=peer_names)
+
             message = json.dumps(msg).encode('utf-8')
         else:
             message = msg.encode('utf-8')
-        # message = msg.encode('utf-8')
 
         if not peer and not peers and not peer_name and not peer_names:
             print("Need a peer to whisper to, doing nothing...")
             return
 
         if peer:
-            super(PyreBaseCommunicator, self).whisper(peer, message)
+            super(PyreBase, self).whisper(peer, message)
         elif peers:
             for peer in peers:
                 time.sleep(ZYRE_SLEEP_TIME)
@@ -237,12 +213,12 @@ class PyreBaseCommunicator(pyre.Pyre):
             valid_uuids = [k for k, v in self.peer_directory.items() if v == peer_name]
             for peer_uuid in valid_uuids:
                 time.sleep(ZYRE_SLEEP_TIME)
-                super(PyreBaseCommunicator, self).whisper(peer_uuid, message)
+                super(PyreBase, self).whisper(peer_uuid, message)
         elif peer_names:
             for peer_name in peer_names:
                 valid_uuids = [k for k, v in self.peer_directory.items() if v == peer_name]
                 for peer_uuid in valid_uuids:
-                    super(PyreBaseCommunicator, self).whisper(peer_uuid, message)
+                    super(PyreBase, self).whisper(peer_uuid, message)
                 time.sleep(ZYRE_SLEEP_TIME)
 
     def send_acknowledgment(self, zyre_msg):
@@ -272,6 +248,10 @@ class PyreBaseCommunicator(pyre.Pyre):
             if not acknowledge:
                 return
             elif ropod_msg_type in self.message_types:
+                # don't acknowledge if receiverIds are specified and this node is not one of them
+                if 'receiverIds' in contents['header'].keys():
+                    if self.name() not in contents['header']['receiverIds']:
+                        return
                 ack_msg = dict()
                 header = dict()
                 payload = dict()
@@ -291,6 +271,101 @@ class PyreBaseCommunicator(pyre.Pyre):
             else:
                 return
 
+    def check_msg_retries(self, message, zyre_msg_type, **kwargs):
+        msg_type = message['header']['type']
+        if msg_type not in self.message_types:
+            return
+        msg_id = message['header']['msgId']
+        queued_msg = self.unacknowledged_msgs.get(msg_id, None)
+        if queued_msg:
+            retry = queued_msg.get('retry_number', 0)
+            self.unacknowledged_msgs[msg_id]['retry_number'] = retry + 1
+            self.unacknowledged_msgs[msg_id]['last_retry'] = self.unacknowledged_msgs[msg_id]['next_retry']
+
+        else:
+            self.unacknowledged_msgs[msg_id] = dict()
+            self.unacknowledged_msgs[msg_id]['retry_number'] = 0
+            current_ts = ts.get_time_stamp()
+            self.unacknowledged_msgs[msg_id]['first_attempt'] = current_ts
+            self.unacknowledged_msgs[msg_id]['last_retry'] = current_ts
+            self.unacknowledged_msgs[msg_id]['zyre_msg_type'] = zyre_msg_type
+            if 'receiverIds' in message['header'].keys():
+                self.unacknowledged_msgs[msg_id]['receiverIds'] = message['header']['receiverIds']
+            else:
+                self.unacknowledged_msgs[msg_id]['receiverIds'] = list()
+            self.unacknowledged_msgs[msg_id]['msg_args'] = dict()
+            self.unacknowledged_msgs[msg_id]['msg_args']['msg'] = message
+            self.unacknowledged_msgs[msg_id]['msg_args'].update(kwargs)
+            deadline = timedelta(seconds=5 ** 5)
+            self.unacknowledged_msgs[msg_id]['reply_by'] = ts.get_time_stamp(deadline)
+
+        # TODO This needs to be probably adapted by message type
+        next_attempt = timedelta(seconds=5)
+        self.unacknowledged_msgs[msg_id]['next_retry'] = ts.get_time_stamp(next_attempt)
+        print(self.unacknowledged_msgs[msg_id])
+
+    def add_next_retry(self, msg_id):
+        retry = self.unacknowledged_msgs[msg_id]['retry_number']
+        timeout = 5 ** retry
+        print(timeout, retry)
+        next_attempt = timedelta(seconds=timeout)
+        self.unacknowledged_msgs[msg_id]['last_retry'] = self.unacknowledged_msgs[msg_id]['next_retry']
+        self.unacknowledged_msgs[msg_id]['next_retry'] = ts.get_time_stamp(next_attempt)
+        self.unacknowledged_msgs[msg_id]['retry_number'] = retry + 1
+
+    def check_unacknowledged_msgs(self, zyre_msg):
+        if zyre_msg.msg_content:
+            try:
+                contents = json.loads(zyre_msg.msg_content)
+            except ValueError as e:
+                print("Message is not formatted in json", e)
+                return
+
+            ropod_msg_type = contents["header"]["type"]
+
+        if ropod_msg_type == "ACKNOWLEDGEMENT":
+            msg_id = contents["payload"]["receivedMsg"]
+            print("Received acknowledgement from %s for %s!" % (zyre_msg.peer_name, msg_id))
+
+            if msg_id in self.unacknowledged_msgs:
+                # if no receiverIds were specified, accept any acknowledgement
+                if not self.unacknowledged_msgs[msg_id]['receiverIds']:
+                    self.unacknowledged_msgs.pop(msg_id)
+                else:
+                    peer_name = zyre_msg.peer_name
+                    if peer_name in self.unacknowledged_msgs[msg_id]['receiverIds']:
+                        self.unacknowledged_msgs[msg_id]['receiverIds'].remove(peer_name)
+                        # if all receiverIds have acknowledged
+                        print(self.unacknowledged_msgs[msg_id])
+                        if not self.unacknowledged_msgs[msg_id]['receiverIds']:
+                            print("All receiverIds have acknowledged message %s" % msg_id)
+                            self.unacknowledged_msgs.pop(msg_id)
+
+    def resend_message_cb(self):
+        """
+        This is a ROPOD specific function
+        :return:
+        """
+        dropped_msgs = []
+
+        for msg_id, attempt_info in self.unacknowledged_msgs.items():
+            if attempt_info['retry_number'] > self.number_of_retries:
+                print("Retried {} times, stopping.".format(self.number_of_retries))
+                dropped_msgs.append(msg_id)
+            else:
+                now = datetime.now().timestamp()
+                if attempt_info['next_retry'] < now:
+                    print(attempt_info)
+                    msg_args = attempt_info['msg_args']
+                    if attempt_info['zyre_msg_type'] == "SHOUT":
+                        self.shout(**msg_args)
+                    elif attempt_info['zyre_msg_type'] == "WHISPER":
+                        self.whisper(**msg_args)
+                    self.add_next_retry(msg_id)
+
+        for msg in dropped_msgs:
+            self.unacknowledged_msgs.pop(msg)
+
     def test(self):
         print(self.name())
         print(self.groups())
@@ -307,21 +382,15 @@ class PyreBaseCommunicator(pyre.Pyre):
         self.whisper(msg, peer_name="chat_tester")
         self.whisper(msg, peer_names=["chat_tester", "chat_tester"])
 
-    def shutdown(self):
-        self.stop()
-        self.pipe.disable_monitor()
-        self.pipe.close()
-        self.ctx.term()
-        self.terminated = True
-
 
 def main():
-    test = PyreBaseCommunicator('test',
-                                ["OTHER-GROUP", "CHAT", "TEST", "PYRE"],
-                                ["TEST_MSG"],
-                                True, acknowledge=True)
+    test = RopodPyre('test',
+                     ["OTHER-GROUP", "CHAT", "TEST", "PYRE"],
+                     ["TEST_MSG"],
+                     True, acknowledge=True)
 
     try:
+        test.start()
         test.test()
         while True:
             time.sleep(0.5)

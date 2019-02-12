@@ -12,7 +12,7 @@ include_directories(include/
     ${JSONCPP_INCLUDE_DIRS}
     )
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/zyre_communicator/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(zyre)
 find_package(czmq)
 find_package(libzmq)
@@ -35,3 +35,19 @@ set(LIBRARIES
 add_executable(${TARGET} ${SOURCE_FILES})
 
 target_link_libraries(${TARGET} ${LIBRARIES})
+
+add_executable(acknowledge_test
+    test/acknowledgements_test.cpp
+    src/ZyreBaseCommunicator.cpp
+)
+target_link_libraries(acknowledge_test
+    ${LIBRARIES}
+)
+
+add_executable(repeated_message_test
+    test/repeated_message_test.cpp
+    src/ZyreBaseCommunicator.cpp
+)
+target_link_libraries(repeated_message_test
+    ${LIBRARIES}
+)
