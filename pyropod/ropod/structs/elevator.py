@@ -78,3 +78,30 @@ class Elevator(object):
         elevator.door_open_at_goal_floor = elevator_dict['doorOpenAtGoalFloor']
         elevator.door_open_at_start_floor = elevator_dict['doorOpenAtStartFloor']
         return elevator
+
+
+class RobotCallUpdate(object):
+    def __init__(self, query_id, command, elevator_id=1, start_floor=None, goal_floor=None):
+        self.queryId = query_id
+        self.command = command
+        self.elevatorId = elevator_id
+        if start_floor:
+            self.startFloor = start_floor
+        elif goal_floor:
+            self.goalFloor = goal_floor
+        else:
+            raise Exception("Missing goal or start floor")
+
+    def to_dict(self):
+        return self.__dict__
+
+
+class RobotElevatorCallReply(object):
+    def __init__(self, query_id, query_success=True, elevator_id=1, elevator_waypoint='door-1'):
+        self.queryId = query_id
+        self.querySuccess = query_success
+        self.elevatorId = elevator_id
+        self.elevatorWaypoint = elevator_waypoint
+
+    def to_dict(self):
+        return self.__dict__

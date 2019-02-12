@@ -1,7 +1,7 @@
 from ropod.utils.timestamp import TimeStamp as ts
 from ropod.utils.uuid import generate_uuid
 from ropod.structs.task import Task, TaskRequest
-from ropod.structs.elevator import ElevatorRequest
+from ropod.structs.elevator import ElevatorRequest, RobotCallUpdate, RobotElevatorCallReply
 
 meta_model_template = 'ropod-%s-schema.json'
 
@@ -18,6 +18,10 @@ class MessageFactory(object):
             model = 'TASK-REQUEST'
         elif isinstance(contents, ElevatorRequest):
             model = 'ELEVATOR-CMD'
+        elif isinstance(contents, RobotCallUpdate):
+            model = 'ROBOT-CALL-UPDATE'
+        elif isinstance(contents, RobotElevatorCallReply):
+            model = 'ROBOT-ELEVATOR-CALL-REPLY'
 
         msg = self.hf.get_header(model, recipients=recipients)
         payload = self.pf.get_payload(contents, model.lower())
