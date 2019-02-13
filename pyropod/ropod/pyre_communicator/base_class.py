@@ -204,7 +204,7 @@ class RopodPyre(PyreBase):
         :param zyre_msg: zyre_msg which contains the message type, peer, group, and contents
         """
 
-        if self.needs_acknowledment(zyre_msg):
+        if self.needs_acknowledgment(zyre_msg):
             contents = self.convert_zyre_msg_to_dict(zyre_msg.msg_content)
             ack_msg = self.mf.get_acknowledge_msg(contents)
 
