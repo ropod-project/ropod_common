@@ -86,11 +86,6 @@ class RopodPyre(PyreBase):
                 items = dict(poller.poll(1000))
                 if not items and self.acknowledge:
                     self.resend_message_cb()
-                elif pipe in items and items[pipe] == zmq.POLLIN:
-                    message = pipe.recv()
-                    if message.decode('utf-8') == "$$STOP":
-                        break
-                    print("CHAT_TASK: %s" % message)
                 else:
                     self.received_msg = self.recv()
 
