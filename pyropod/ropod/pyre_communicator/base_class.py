@@ -98,9 +98,8 @@ class RopodPyre(PyreBase):
                     elif zyre_msg.msg_type not in ('WHISPER', 'JOIN', 'PING', 'PING_OK', 'HELLO', 'ENTER'):
                         self.logger.warning("Unrecognized message type: %s", zyre_msg.msg_type)
 
-                    if zyre_msg.msg_type in ("SHOUT", "WHISPER") and self.acknowledge:
-                            self.send_acknowledgment(zyre_msg)
-                            self.check_unacknowledged_msgs(zyre_msg)
+                    if self.acknowledge:
+                        self.acknowledge_cb(zyre_msg)
 
                     self.zyre_event_cb(zyre_msg)
 
@@ -112,6 +111,11 @@ class RopodPyre(PyreBase):
     def zyre_event_cb(self, zyre_msg):
         if zyre_msg.msg_type in ("SHOUT", "WHISPER"):
             self.receive_msg_cb(zyre_msg.msg_content)
+
+    def acknowledge_cb(self, zyre_msg):
+        if zyre_msg.msg_type in ('SHOUT', 'WHISPER'):
+            self.send_acknowledgment(zyre_msg)
+            self.check_unacknowledged_msgs(zyre_msg)
 
     def shout(self, msg, groups=None):
         """
