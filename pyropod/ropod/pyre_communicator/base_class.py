@@ -77,6 +77,12 @@ class RopodPyre(PyreBase):
 
         while not self.terminated:
             try:
+                # Call the poller with a timeout of 1000 ms.
+                # If a timeout occurs, items is empty, so we just check if we need to resend any messages.
+                # This makes sure we check resending of messages at least every second.
+                # Otherwise we're dependent on receiving a message to get out of the polling call.
+                # If items is not empty, it means we've received a message on one of the pipes,
+                #  so we parse the message etc.
                 items = dict(poller.poll(1000))
                 if not items and self.acknowledge:
                     self.resend_message_cb()
