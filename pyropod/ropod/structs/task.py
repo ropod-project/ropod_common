@@ -1,3 +1,4 @@
+from ropod.utils.uuid import generate_uuid
 from ropod.structs.area import Area
 from ropod.structs.action import Action
 from ropod.structs.status import TaskStatus
@@ -18,8 +19,8 @@ class TaskRequest(object):
         self.earliest_start_time = -1.
         self.latest_start_time = -2.
         self.user_id = ''
-        self.cart_type = ''
-        self.cart_id = ''
+        self.load_type = ''
+        self.load_id = ''
         self.priority = -1
 
     def to_dict(self):
@@ -29,10 +30,30 @@ class TaskRequest(object):
         request_dict['earliest_start_time'] = self.earliest_start_time
         request_dict['latest_start_time'] = self.latest_start_time
         request_dict['user_id'] = self.user_id
-        request_dict['cart_type'] = self.cart_type
-        request_dict['cart_id'] = self.cart_id
+        request_dict['load_type'] = self.load_type
+        request_dict['load_id'] = self.load_id
         request_dict['priority'] = self.priority
         return request_dict
+
+    @staticmethod
+    def from_dict(request_dict):
+
+        request = TaskRequest()
+        request.load_type = request_dict["loadType"]
+        request.load_id = request_dict["loadId"]
+        request.user_id = request_dict["userId"]
+        request.earliest_start_time = request_dict["earliestStartTime"]
+        request.latest_start_time = request_dict["latestStartTime"]
+
+        request.pickup_pose = Area()
+        request.pickup_pose.name = request_dict["pickupLocation"]
+        request.pickup_pose.floor_number = request_dict["pickupLocationLevel"]
+
+        request.delivery_pose = Area()
+        request.delivery_pose.name = request_dict["deliveryLocation"]
+        request.delivery_pose.floor_number = request_dict["deliveryLocationLevel"]
+        request.priority = request_dict["priority"]
+        return request
 
 
 class Task(object):
@@ -41,27 +62,53 @@ class Task(object):
     NORMAL = 2
     LOW = 3
 
-    def __init__(self):
-        self.id = ''
-        self.robot_actions = dict()
-        self.cart_type = ''
-        self.cart_id = ''
-        self.team_robot_ids = list()
-        self.earliest_start_time = -1.
-        self.latest_start_time = -2.
-        self.estimated_duration = -1.
-        self.start_time = -1.
-        self.finish_time = -2.
-        self.pickup_pose = Area()
-        self.delivery_pose = Area()
-        self.status = TaskStatus()
-        self.priority = 0
+    def __init__(self, id='', robot_actions=dict(), loadType='', loadId='', team_robot_ids=list(),
+                 earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1, start_time=-1,
+                 finish_time=-1, pickup_pose=Area(), delivery_pose=Area(), status=TaskStatus(), priority=NORMAL):
+
+        if not id:
+            self.id = generate_uuid()
+        else:
+            self.id = id
+        self.robot_actions = robot_actions
+        self.loadType = loadType
+        self.loadId = loadId
+        self.team_robot_ids = team_robot_ids
+        self.earliest_start_time = earliest_start_time
+        self.latest_start_time = latest_start_time
+        self.estimated_duration = estimated_duration
+        self.start_time = start_time
+        self.finish_time = finish_time
+
+        if isinstance(pickup_pose, Area):
+            self.pickup_pose = pickup_pose
+        else:
+            raise Exception('pickup_pose must be an object of type Area')
+
+        if isinstance(delivery_pose, Area):
+            self.delivery_pose = delivery_pose
+        else:
+            raise Exception('delivery_pose must be an object of type Area')
+
+        if isinstance(status, TaskStatus):
+            self.status = status
+        else:
+            raise Exception("status must be an object of TaskStatus type")
+
+        if priority in (self.EMERGENCY, self.NORMAL, self.HIGH, self.LOW):
+            self.priority = priority
+        else:
+            raise Exception("Priority must have one of the following values:\n"
+                            "0) Urgent\n"
+                            "1) High\n"
+                            "2) Normal\n"
+                            "3) Low")
 
     def to_dict(self):
         task_dict = dict()
         task_dict['id'] = self.id
-        task_dict['cart_type'] = self.cart_type
-        task_dict['cart_id'] = self.cart_id
+        task_dict['loadType'] = self.loadType
+        task_dict['loadId'] = self.loadId
         task_dict['team_robot_ids'] = self.team_robot_ids
         task_dict['earliest_start_time'] = self.earliest_start_time
         task_dict['latest_start_time'] = self.latest_start_time
@@ -84,8 +131,8 @@ class Task(object):
     def from_dict(task_dict):
         task = Task()
         task.id = task_dict['id']
-        task.cart_type = task_dict['cart_type']
-        task.cart_id = task_dict['cart_id']
+        task.loadType = task_dict['loadType']
+        task.loadId = task_dict['loadId']
         task.team_robot_ids = task_dict['team_robot_ids']
         task.earliest_start_time = task_dict['earliest_start_time']
         task.latest_start_time = task_dict['latest_start_time']
@@ -101,4 +148,22 @@ class Task(object):
             for action_dict in actions:
                 action = Action.from_dict(action_dict)
                 task.robot_actions[robot_id].append(action)
+        return task
+
+    @staticmethod
+    def from_request(request):
+        assert(request, TaskRequest)
+
+        task = Task()
+        task.load_type = request.load_type
+        task.load_id = request.load_id
+        task.earliest_start_time = request.earliest_start_time
+        task.latest_start_time = request.latest_start_time
+        task.pickup_pose = request.pickup_pose
+        task.delivery_pose = request.delivery_pose
+        task.priority = request.priority
+        task.status.status = "unallocated" # TODO This should be standardized
+        task.status.task_id = task.id
+        task.team_robot_ids = None
+
         return task
