@@ -22,6 +22,7 @@ class SubArea(object):
         sub_area.capacity = sub_area_dict['capacity']
         return sub_area
 
+
 class SubAreaReservation(object):
     def __init__(self):
         self.sub_area_id = -1
@@ -61,6 +62,7 @@ class SubAreaReservation(object):
             'sub_area_id': self.sub_area_id, 'robot_id': self.robot_id, 'task_id': self.task_id, 'start_time': self.start_time, \
             'end_time': self.end_time, 'status': self.status
          }
+
 
 class Area(object):
     def __init__(self):
