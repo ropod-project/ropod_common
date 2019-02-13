@@ -94,32 +94,14 @@ class RopodPyre(PyreBase):
                 else:
                     self.received_msg = self.recv()
 
-                    zyre_msg = ZyreMsg(msg_type=self.received_msg.pop(0).decode('utf-8'),
-                                       peer_uuid=uuid.UUID(bytes=self.received_msg.pop(0)),
-                                       peer_name=self.received_msg.pop(0).decode('utf-8'))
+                    zyre_msg = self.get_zyre_msg()
 
-                    # The following pyre message types don't need any further processing:
-                    # 'WHISPER', 'JOIN', 'PING', 'PING_OK', 'HELLO'
-
-                    if zyre_msg.msg_type == "SHOUT":
-                        zyre_msg.update(group_name=self.received_msg.pop(0).decode('utf-8'))
-                    elif zyre_msg.msg_type == "ENTER":
-                        zyre_msg.update(headers=json.loads(self.received_msg.pop(0).decode('utf-8')))
-
-                        self.peer_directory[zyre_msg.peer_uuid] = zyre_msg.peer_name
-                        self.logger.debug("Directory: ", self.peer_directory)
-
-                    elif zyre_msg.msg_type in ('LEAVE', 'EXIT'):
+                    if zyre_msg.msg_type in ('LEAVE', 'EXIT'):
                         continue
                     elif zyre_msg.msg_type == "STOP":
                         break
-                    else:
-                        self.logger.warning("Unrecognized message type!")
-
-                    zyre_msg.update(msg_content=self.received_msg.pop(0).decode('utf-8'))
-
-                    self.logger.debug("----- new message ----- ")
-                    self.logger.debug(zyre_msg)
+                    elif zyre_msg.msg_type not in ('WHISPER', 'JOIN', 'PING', 'PING_OK', 'HELLO', 'ENTER'):
+                        self.logger.warning("Unrecognized message type: %s", zyre_msg.msg_type)
 
                     if zyre_msg.msg_type in ("SHOUT", "WHISPER") and self.acknowledge:
                             self.send_acknowledgment(zyre_msg)
