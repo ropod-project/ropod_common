@@ -91,6 +91,9 @@ class RopodPyre(PyreBase):
                                        peer_uuid=uuid.UUID(bytes=self.received_msg.pop(0)),
                                        peer_name=self.received_msg.pop(0).decode('utf-8'))
 
+                    # The following pyre message types don't need any further processing:
+                    # 'WHISPER', 'JOIN', 'PING', 'PING_OK', 'HELLO'
+
                     if zyre_msg.msg_type == "SHOUT":
                         zyre_msg.update(group_name=self.received_msg.pop(0).decode('utf-8'))
                     elif zyre_msg.msg_type == "ENTER":
@@ -99,20 +102,9 @@ class RopodPyre(PyreBase):
                         self.peer_directory[zyre_msg.peer_uuid] = zyre_msg.peer_name
                         if self.verbose:
                             print("Directory: ", self.peer_directory)
-                    elif zyre_msg.msg_type == "WHISPER":
-                        pass
-                    elif zyre_msg.msg_type == "JOIN":
-                        pass
-                    elif zyre_msg.msg_type == "LEAVE":
+
+                    elif zyre_msg.msg_type in ('LEAVE', 'EXIT'):
                         continue
-                    elif zyre_msg.msg_type == "EXIT":
-                        continue
-                    elif zyre_msg.msg_type == "PING":
-                        pass
-                    elif zyre_msg.msg_type == "PING_OK":
-                        pass
-                    elif zyre_msg.msg_type == "HELLO":
-                        pass
                     elif zyre_msg.msg_type == "STOP":
                         break
                     else:
@@ -124,8 +116,7 @@ class RopodPyre(PyreBase):
                         print("----- new message ----- ")
                         print(zyre_msg)
 
-                    if zyre_msg.msg_type in ("SHOUT", "WHISPER"):
-                        if self.acknowledge:
+                    if zyre_msg.msg_type in ("SHOUT", "WHISPER") and self.acknowledge:
                             self.send_acknowledgment(zyre_msg)
                             self.check_unacknowledged_msgs(zyre_msg)
 
