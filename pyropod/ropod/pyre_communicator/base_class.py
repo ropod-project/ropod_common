@@ -212,11 +212,7 @@ class RopodPyre(PyreBase):
             acknowledge = False
 
         if zyre_msg.msg_content:
-            try:
-                contents = json.loads(zyre_msg.msg_content)
-            except ValueError as e:
-                print("Message is not formatted in json")
-                return
+            contents = self.convert_zyre_msg_to_dict(zyre_msg.msg_content)
 
             ropod_msg_type = contents["header"]["type"]
             if not acknowledge:
