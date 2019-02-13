@@ -10,6 +10,7 @@ from ropod.utils.uuid import generate_uuid
 
 from pyre_base.zyre_params import ZyreMsg
 from pyre_base.base_class import PyreBase
+from ropod.utils.models import MessageFactory
 
 ZYRE_SLEEP_TIME = 0.250  # type: float
 
@@ -35,6 +36,7 @@ class RopodPyre(PyreBase):
         self.acknowledge = acknowledge
         self.unacknowledged_msgs = {}
         self.number_of_retries = retries
+        self.mf = MessageFactory()
 
         if self.acknowledge:
             self.unacknowledged_msgs = {}
@@ -226,17 +228,8 @@ class RopodPyre(PyreBase):
                 if 'receiverIds' in contents['header'].keys():
                     if self.name() not in contents['header']['receiverIds']:
                         return
-                ack_msg = dict()
-                header = dict()
-                payload = dict()
 
-                header["type"] = "ACKNOWLEDGEMENT"
-                header["msgId"] = generate_uuid()
-
-                payload["receivedMsg"] = contents["header"]["msgId"]
-
-                ack_msg["header"] = header
-                ack_msg["payload"] = payload
+                ack_msg = self.mf.get_acknowledge_msg(contents)
 
                 self.whisper(ack_msg, zyre_msg.peer_uuid)
 
