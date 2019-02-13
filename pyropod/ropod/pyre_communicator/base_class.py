@@ -16,7 +16,7 @@ ZYRE_SLEEP_TIME = 0.250  # type: float
 
 class RopodPyre(PyreBase):
     def __init__(self, node_name, groups, message_types, verbose=False,
-                 interface=None, acknowledge=True, ropod_uuid=None, extra_headers=None,
+                 interface=None, acknowledge=True, ropod_uuid=None, extra_headers={},
                  retries=5):
         """
 
@@ -30,11 +30,18 @@ class RopodPyre(PyreBase):
         :param ropod_uuid: a string containing the hexadecimal version of a nodes uuid
         :param extra_headers: a dictionary containing the additional headers
         """
+        self.logger = logging.getLogger('RopodPyre')
+
+        self.acknowledge = acknowledge
+        self.unacknowledged_msgs = {}
+        self.number_of_retries = retries
+
+        if self.acknowledge:
+            self.unacknowledged_msgs = {}
+            self.number_of_retries = retries
+
         super(RopodPyre, self).__init__(node_name, groups, message_types,
                                         verbose=verbose, interface=interface)
-
-        self.logger = logging.getLogger('RopodPyre')
-        self.acknowledge = acknowledge
 
         self.set_header('name', node_name)
         if ropod_uuid:
@@ -46,13 +53,7 @@ class RopodPyre(PyreBase):
             for key in extra_headers:
                 self.set_header(key, extra_headers[key])
 
-        self.acknowledge = acknowledge
-        self.unacknowledged_msgs = {}
-        self.number_of_retries = retries
-
-        if self.acknowledge:
-            self.unacknowledged_msgs = {}
-            self.number_of_retries = retries
+        self.logger.info('Initialized %s', self.name())
 
     def receive_msg_cb(self, msg_content):
         pass
