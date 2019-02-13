@@ -3,6 +3,7 @@ import json
 import zmq
 import ast
 import logging
+from uuid import UUID
 from datetime import timedelta, datetime
 from ropod.utils.timestamp import TimeStamp as ts
 from ropod.utils.uuid import generate_uuid
@@ -129,8 +130,6 @@ class RopodPyre(PyreBase):
         """
 
         if isinstance(msg, dict):
-            # NOTE: json.dumps must be used instead of str, since it returns
-            # the correct type of string
             if self.acknowledge:
                 self.check_msg_retries(msg, "SHOUT", groups=groups)
             message = json.dumps(msg, default=str).encode('utf-8')
@@ -149,7 +148,7 @@ class RopodPyre(PyreBase):
             for group in self.groups():
                 super(PyreBase, self).shout(group, message)
 
-    def whisper(self, msg, peer=None, peers=None, peer_name=None, peer_names=None):
+    def whisper(self, msg, peer):
         """
         Whispers a message to a peer.
         For Python 3 encodes the message to utf-8.
@@ -157,14 +156,14 @@ class RopodPyre(PyreBase):
         Params:
             :string msg: the string to be sent
             :UUID peer: a single peer UUID
-            :list peers: a list of peer UUIDs
-            :string peer_name the name of a peer
-            :list peer_names a list of peer names
+            :list peer: a list of peer UUIDs
+            :string peer: the name of a peer
+            :list peer: a list of peer names
         """
 
         if isinstance(msg, dict):
-            # NOTE: json.dumps must be used instead of str, since it returns
-            # the correct type of string
+            # Add message to list of messages that need acknowledgment
+            # TODO we shouldn't add every single message, but only those that are of the right type
             if self.acknowledge:
                 self.check_msg_retries(msg, "WHISPER", peer=peer, peers=peers, peer_name=peer_name,
                                        peer_names=peer_names)
@@ -173,27 +172,26 @@ class RopodPyre(PyreBase):
         else:
             message = msg.encode('utf-8')
 
-        if not peer and not peers and not peer_name and not peer_names:
-            print("Need a peer to whisper to, doing nothing...")
-            return
+        if isinstance(peer, UUID):
+            self.whisper_to_uuid(peer, message)
+        elif isinstance(peer, list):
+            for p in peer:
+                time.sleep(ZYRE_SLEEP_TIME)
+                if isinstance(p, UUID):
+                    self.whisper_to_uuid(p, message)
+                else:
+                    self.whisper_to_name(p, message)
+        elif isinstance(peer, str):
+            self.whisper_to_name(peer, message)
 
-        if peer:
-            super(PyreBase, self).whisper(peer, message)
-        elif peers:
-            for peer in peers:
-                time.sleep(ZYRE_SLEEP_TIME)
-                self.whispers(peer, message)
-        elif peer_name:
-            valid_uuids = [k for k, v in self.peer_directory.items() if v == peer_name]
-            for peer_uuid in valid_uuids:
-                time.sleep(ZYRE_SLEEP_TIME)
-                super(PyreBase, self).whisper(peer_uuid, message)
-        elif peer_names:
-            for peer_name in peer_names:
-                valid_uuids = [k for k, v in self.peer_directory.items() if v == peer_name]
-                for peer_uuid in valid_uuids:
-                    super(PyreBase, self).whisper(peer_uuid, message)
-                time.sleep(ZYRE_SLEEP_TIME)
+    def whisper_to_uuid(self, peer, message):
+        super(PyreBase, self).whisper(peer, message)
+
+    def whisper_to_name(self, peer_name, message):
+        for k, v in self.peer_directory.items():
+            if v == peer_name:
+                self.whisper_to_uuid(k, message)
+                return
 
     def send_acknowledgment(self, zyre_msg):
         """
