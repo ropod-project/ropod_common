@@ -1,5 +1,4 @@
 import time
-import uuid
 import json
 import zmq
 import ast
@@ -8,7 +7,6 @@ from datetime import timedelta, datetime
 from ropod.utils.timestamp import TimeStamp as ts
 from ropod.utils.uuid import generate_uuid
 
-from pyre_base.zyre_params import ZyreMsg
 from pyre_base.base_class import PyreBase
 from ropod.utils.models import MessageFactory
 
