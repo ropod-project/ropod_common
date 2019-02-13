@@ -3,6 +3,7 @@ import uuid
 import json
 import zmq
 import ast
+import logging
 from datetime import timedelta, datetime
 from ropod.utils.timestamp import TimeStamp as ts
 from ropod.utils.uuid import generate_uuid
@@ -32,6 +33,7 @@ class RopodPyre(PyreBase):
         super(RopodPyre, self).__init__(node_name, groups, message_types,
                                         verbose=verbose, interface=interface)
 
+        self.logger = logging.getLogger('RopodPyre')
         self.acknowledge = acknowledge
 
         self.set_header('name', node_name)
@@ -84,8 +86,6 @@ class RopodPyre(PyreBase):
                     print("CHAT_TASK: %s" % message)
                 else:
                     self.received_msg = self.recv()
-                    if self.verbose:
-                        print(self.received_msg)
 
                     zyre_msg = ZyreMsg(msg_type=self.received_msg.pop(0).decode('utf-8'),
                                        peer_uuid=uuid.UUID(bytes=self.received_msg.pop(0)),
@@ -100,21 +100,19 @@ class RopodPyre(PyreBase):
                         zyre_msg.update(headers=json.loads(self.received_msg.pop(0).decode('utf-8')))
 
                         self.peer_directory[zyre_msg.peer_uuid] = zyre_msg.peer_name
-                        if self.verbose:
-                            print("Directory: ", self.peer_directory)
+                        self.logger.debug("Directory: ", self.peer_directory)
 
                     elif zyre_msg.msg_type in ('LEAVE', 'EXIT'):
                         continue
                     elif zyre_msg.msg_type == "STOP":
                         break
                     else:
-                        print("Unrecognized message type!")
+                        self.logger.warning("Unrecognized message type!")
 
                     zyre_msg.update(msg_content=self.received_msg.pop(0).decode('utf-8'))
 
-                    if self.verbose:
-                        print("----- new message ----- ")
-                        print(zyre_msg)
+                    self.logger.debug("----- new message ----- ")
+                    self.logger.debug(zyre_msg)
 
                     if zyre_msg.msg_type in ("SHOUT", "WHISPER") and self.acknowledge:
                             self.send_acknowledgment(zyre_msg)
