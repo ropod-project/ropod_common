@@ -7,9 +7,6 @@ meta_model_template = 'ropod-%s-schema.json'
 
 
 class MessageFactory(object):
-    def __init__(self):
-        self.hf = HeaderFactory()
-        self.pf = PayloadFactory()
 
     def create_message(self, contents, recipients=None):
         if isinstance(contents, Task):
@@ -23,13 +20,10 @@ class MessageFactory(object):
         elif isinstance(contents, RobotElevatorCallReply):
             model = 'ROBOT-ELEVATOR-CALL-REPLY'
 
-        msg = self.hf.get_header(model, recipients=recipients)
-        payload = self.pf.get_payload(contents, model.lower())
+        msg = self.get_header(model, recipients=recipients)
+        payload = self.get_payload(contents, model.lower())
         msg.update(payload)
         return msg
-
-
-class HeaderFactory(object):
 
     @staticmethod
     def get_header(message_type, meta_model='msg', recipients=None):
@@ -42,12 +36,31 @@ class HeaderFactory(object):
                            'timeStamp': ts.get_time_stamp(),
                            'recipients': recipients}}
 
-
-class PayloadFactory(object):
-
     @staticmethod
     def get_payload(contents, model):
         payload = contents.to_dict()
         metamodel = meta_model_template % model
         payload.update(metamodel=metamodel)
         return {"payload": payload}
+
+    @staticmethod
+    def update_timestamp(message):
+        header = message.get('header')
+        if header:
+            header.update(timeStamp=ts.get_time_stamp())
+        else:
+            header = MessageFactory.get_header(None)
+            message.update(header)
+
+    @staticmethod
+    def update_msg_id(message, id=None):
+        header = message.get('header')
+
+        if header:
+            if id:
+                header.update(msgId=id)
+            else:
+                header.update(msgId=generate_uuid())
+        else:
+            header = MessageFactory.get_header(None)
+            message.update(header)
