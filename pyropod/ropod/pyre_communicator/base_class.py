@@ -274,12 +274,7 @@ class RopodPyre(PyreBase):
 
     def check_unacknowledged_msgs(self, zyre_msg):
         if zyre_msg.msg_content:
-            try:
-                contents = json.loads(zyre_msg.msg_content)
-            except ValueError as e:
-                print("Message is not formatted in json", e)
-                return
-
+            contents = self.convert_zyre_msg_to_dict(zyre_msg.msg_content)
             ropod_msg_type = contents["header"]["type"]
 
         if ropod_msg_type == "ACKNOWLEDGEMENT":
@@ -290,12 +285,11 @@ class RopodPyre(PyreBase):
                 # if no receiverIds were specified, accept any acknowledgement
                 if not self.unacknowledged_msgs[msg_id]['receiverIds']:
                     self.unacknowledged_msgs.pop(msg_id)
-                else:
-                    peer_name = zyre_msg.peer_name
-                    if peer_name in self.unacknowledged_msgs[msg_id]['receiverIds']:
+                elif zyre_msg.peer_name in self.unacknowledged_msgs[msg_id]['receiverIds']:
+                        peer_name = zyre_msg.peer_name
                         self.unacknowledged_msgs[msg_id]['receiverIds'].remove(peer_name)
                         # if all receiverIds have acknowledged
-                        print(self.unacknowledged_msgs[msg_id])
+                        # print(self.unacknowledged_msgs[msg_id])
                         if not self.unacknowledged_msgs[msg_id]['receiverIds']:
                             print("All receiverIds have acknowledged message %s" % msg_id)
                             self.unacknowledged_msgs.pop(msg_id)
