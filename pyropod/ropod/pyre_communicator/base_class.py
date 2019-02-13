@@ -204,33 +204,31 @@ class RopodPyre(PyreBase):
         :param zyre_msg: zyre_msg which contains the message type, peer, group, and contents
         """
 
-        if zyre_msg.msg_type == "SHOUT" and zyre_msg.group_name in self.own_groups():
-            acknowledge = True
-        elif zyre_msg.msg_type == "WHISPER":
-            acknowledge = True
+        if self.needs_acknowledment(zyre_msg):
+            contents = self.convert_zyre_msg_to_dict(zyre_msg.msg_content)
+            ack_msg = self.mf.get_acknowledge_msg(contents)
+
+            self.whisper(ack_msg, zyre_msg.peer_uuid)
         else:
-            acknowledge = False
+            return
+
+    def needs_acknowledgment(self, zyre_msg):
+        if zyre_msg.msg_type not in ('SHOUT', 'WHISPER'):
+            return False
+        elif zyre_msg.msg_type == 'SHOUT' and zyre_msg.group_name not in self.own_groups():
+            return False
 
         if zyre_msg.msg_content:
             contents = self.convert_zyre_msg_to_dict(zyre_msg.msg_content)
+            header = contents.get('header')
 
-            ropod_msg_type = contents["header"]["type"]
-            if not acknowledge:
-                return
-            elif ropod_msg_type in self.message_types:
-                # don't acknowledge if receiverIds are specified and this node is not one of them
-                if 'receiverIds' in contents['header'].keys():
-                    if self.name() not in contents['header']['receiverIds']:
-                        return
+            if not header.get('receiverIds') and self.name not in header.get('receiverIds'):
+                return False
 
-                ack_msg = self.mf.get_acknowledge_msg(contents)
-
-                self.whisper(ack_msg, zyre_msg.peer_uuid)
-
-            elif ropod_msg_type in self.message_types and zyre_msg.msg_type == "WHISPER":
-                print('Whispered message is not on the message type list; not sending acknowledgement...')
-            else:
-                return
+            if header.get('type') in self.message_types:
+                return True
+        else:
+            return False
 
     def check_msg_retries(self, message, zyre_msg_type, **kwargs):
         msg_type = message['header']['type']
