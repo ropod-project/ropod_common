@@ -33,8 +33,8 @@ class MessageFactory(object):
         return {"header": {'type': message_type,
                            'metamodel': 'ropod-%s-schema.json' % meta_model,
                            'msgId': generate_uuid(),
-                           'timeStamp': ts.get_time_stamp(),
-                           'recipients': recipients}}
+                           'timestamp': ts.get_time_stamp(),
+                           'receiverIds': recipients}}
 
     @staticmethod
     def get_payload(contents, model):
