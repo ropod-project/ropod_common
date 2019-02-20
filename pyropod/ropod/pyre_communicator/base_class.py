@@ -160,7 +160,7 @@ class RopodPyre(PyreBase):
             # the correct type of string
             if self.acknowledge:
                 self.check_msg_retries(msg, "SHOUT", groups=groups)
-            message = json.dumps(msg).encode('utf-8')
+            message = json.dumps(msg, default=str).encode('utf-8')
         else:
             message = msg.encode('utf-8')
 
@@ -196,7 +196,7 @@ class RopodPyre(PyreBase):
                 self.check_msg_retries(msg, "WHISPER", peer=peer, peers=peers, peer_name=peer_name,
                                        peer_names=peer_names)
 
-            message = json.dumps(msg).encode('utf-8')
+            message = json.dumps(msg, default=str).encode('utf-8')
         else:
             message = msg.encode('utf-8')
 
