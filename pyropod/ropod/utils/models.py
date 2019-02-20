@@ -25,6 +25,26 @@ class MessageFactory(object):
         msg.update(payload)
         return msg
 
+    def get_query_msg(self, msg_type, payload_key, payload_value, success, receiverId):
+        '''Returns a dictionary representing a query response for the given 
+        message type.
+        Assumption: header uses 'ropod-msg-schema.json' meta model
+
+        Keyword arguments:
+        :msg_type: a string representing a message type
+        :payload_key: string representing key for payload
+        :payload_value: list/dict representing the response of the query
+        :success: boolean
+        :receiverId: string
+
+        '''
+        response_msg = self.get_header(msg_type, recipients=[])
+        response_msg['payload'] = dict()
+        response_msg['payload'][payload_key] = payload_value
+        response_msg['payload']['success'] = success
+        response_msg['payload']['receiverId'] = receiverId
+        return response_msg
+
     @staticmethod
     def get_header(message_type, meta_model='msg', recipients=None):
         if recipients is not None and not isinstance(recipients, list):
