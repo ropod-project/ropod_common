@@ -101,7 +101,7 @@ class RopodPyre(PyreBase):
                         continue
                     elif zyre_msg.msg_type == "STOP":
                         break
-                    elif zyre_msg.msg_type not in ('WHISPER', 'JOIN', 'PING', 'PING_OK', 'HELLO', 'ENTER'):
+                    elif zyre_msg.msg_type not in ('SHOUT', 'WHISPER', 'JOIN', 'PING', 'PING_OK', 'HELLO', 'ENTER'):
                         self.logger.warning("Unrecognized message type: %s", zyre_msg.msg_type)
 
                     if self.acknowledge:
