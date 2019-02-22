@@ -170,7 +170,7 @@ class RopodPyre(PyreBase):
             # Add message to list of messages that need acknowledgment
             # TODO we shouldn't add every single message, but only those that are of the right type
             if self.acknowledge:
-                self.check_msg_retries(msg, "WHISPER", peer)
+                self.check_msg_retries(msg, "WHISPER", peer=peer)
 
             message = json.dumps(msg, default=str).encode('utf-8')
         else:
@@ -224,7 +224,7 @@ class RopodPyre(PyreBase):
             contents = self.convert_zyre_msg_to_dict(zyre_msg.msg_content)
             header = contents.get('header')
 
-            if not header.get('receiverIds') and self.name not in header.get('receiverIds'):
+            if not header.get('receiverIds', []) and self.name not in header.get('receiverIds', []):
                 return False
 
             if header.get('type') in self.message_types:
@@ -263,12 +263,10 @@ class RopodPyre(PyreBase):
         # TODO This needs to be probably adapted by message type
         next_attempt = timedelta(seconds=5)
         self.unacknowledged_msgs[msg_id]['next_retry'] = ts.get_time_stamp(next_attempt)
-        print(self.unacknowledged_msgs[msg_id])
 
     def add_next_retry(self, msg_id):
         retry = self.unacknowledged_msgs[msg_id]['retry_number']
         timeout = 5 ** retry
-        print(timeout, retry)
         next_attempt = timedelta(seconds=timeout)
         self.unacknowledged_msgs[msg_id]['last_retry'] = self.unacknowledged_msgs[msg_id]['next_retry']
         self.unacknowledged_msgs[msg_id]['next_retry'] = ts.get_time_stamp(next_attempt)
@@ -339,18 +337,40 @@ class RopodPyre(PyreBase):
 
 
 def main():
-    test = RopodPyre('test',
-                     ["OTHER-GROUP", "CHAT", "TEST", "PYRE"],
-                     ["TEST_MSG"],
-                     True, acknowledge=True)
+    logging.getLogger('pyre').setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
 
-    try:
-        test.start()
-        test.test()
-        while True:
-            time.sleep(0.5)
-    except (KeyboardInterrupt, SystemExit):
-        test.shutdown()
+    logging.basicConfig(format="%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s",
+                        level=logging.DEBUG)
+
+    node1 = RopodPyre('node1',
+                                ["TEST-GROUP"],
+                                ["TEST_MSG"],
+                                True, acknowledge=True)
+    node1.start()
+    msg_id = generate_uuid()
+    msg = {'header':
+            {'type': 'TEST_MSG', 'msgId': msg_id, 'receiverIds':['node2', 'node3']},
+           'payload':
+           {'msg': 'test'}}
+
+    node1.shout(msg)
+    time.sleep(6)
+
+    node2 = RopodPyre('node2',
+                                ["TEST-GROUP"],
+                                ["TEST_MSG"],
+                                False, acknowledge=True)
+    node3 = RopodPyre('node3',
+                                ["TEST-GROUP"],
+                                ["TEST_MSG"],
+                                False, acknowledge=True)
+    node2.start()
+    node3.start()
+    time.sleep(6)
+    node1.shutdown()
+    node2.shutdown()
+    node3.shutdown()
 
 
 if __name__ == '__main__':
