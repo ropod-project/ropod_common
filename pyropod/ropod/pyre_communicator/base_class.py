@@ -66,8 +66,8 @@ class RopodPyre(PyreBase):
             try:
                 return json.loads(msg)
             except Exception as e:
-                print("Couldn't convert zyre_msg to dictionary")
-                print(e)
+                self.logger.warning("Couldn't convert zyre_msg to dictionary")
+                self.logger.warning(e)
                 return None
 
     def receive_loop(self, ctx, pipe):
@@ -112,7 +112,7 @@ class RopodPyre(PyreBase):
             except (KeyboardInterrupt, SystemExit):
                 self.terminated = True
                 break
-        print("Exiting.......")
+        self.logger.info("Node %s exiting..." % self.name())
 
     def zyre_event_cb(self, zyre_msg):
         if zyre_msg.msg_type in ("SHOUT", "WHISPER"):
@@ -279,7 +279,7 @@ class RopodPyre(PyreBase):
 
         if ropod_msg_type == "ACKNOWLEDGEMENT":
             msg_id = contents["payload"]["receivedMsg"]
-            print("Received acknowledgement from %s for %s!" % (zyre_msg.peer_name, msg_id))
+            self.logger.debug("Received acknowledgement from %s for %s!" % (zyre_msg.peer_name, msg_id))
 
             if msg_id in self.unacknowledged_msgs:
                 # if no receiverIds were specified, accept any acknowledgement
@@ -291,7 +291,7 @@ class RopodPyre(PyreBase):
                         # if all receiverIds have acknowledged
                         # print(self.unacknowledged_msgs[msg_id])
                         if not self.unacknowledged_msgs[msg_id]['receiverIds']:
-                            print("All receiverIds have acknowledged message %s" % msg_id)
+                            self.logger.debug("All receiverIds have acknowledged message %s" % msg_id)
                             self.unacknowledged_msgs.pop(msg_id)
 
     def resend_message_cb(self):
@@ -303,12 +303,12 @@ class RopodPyre(PyreBase):
 
         for msg_id, attempt_info in self.unacknowledged_msgs.items():
             if attempt_info['retry_number'] > self.number_of_retries:
-                print("Retried {} times, stopping.".format(self.number_of_retries))
+                self.logger.warning("Retried {} times, stopping.".format(self.number_of_retries))
                 dropped_msgs.append(msg_id)
             else:
                 now = datetime.now().timestamp()
                 if attempt_info['next_retry'] < now:
-                    print(attempt_info)
+                    self.logger.debug("Attempt information: %s" % attempt_info)
                     msg_args = attempt_info['msg_args']
                     if attempt_info['zyre_msg_type'] == "SHOUT":
                         self.shout(**msg_args)
