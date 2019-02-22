@@ -88,7 +88,7 @@ class MessageFactory(object):
     @staticmethod
     def get_acknowledge_msg(message):
         msg = MessageFactory.get_header('ACKNOWLEDGEMENT')
-        message_id = message.get('headers').get('msgId')
+        message_id = message.get('header').get('msgId')
         payload = {'payload': {'receivedMsg': message_id}}
         msg.update(payload)
         return msg
