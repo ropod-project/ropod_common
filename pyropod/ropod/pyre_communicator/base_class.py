@@ -165,8 +165,7 @@ class RopodPyre(PyreBase):
             # Add message to list of messages that need acknowledgment
             # TODO we shouldn't add every single message, but only those that are of the right type
             if self.acknowledge:
-                self.check_msg_retries(msg, "WHISPER", peer=peer, peers=peers, peer_name=peer_name,
-                                       peer_names=peer_names)
+                self.check_msg_retries(msg, "WHISPER", peer)
 
             message = json.dumps(msg, default=str).encode('utf-8')
         else:
@@ -330,8 +329,8 @@ class RopodPyre(PyreBase):
             self.shout(msg, group)
             time.sleep(1)
         self.shout('hello')
-        self.whisper(msg, peer_name="chat_tester")
-        self.whisper(msg, peer_names=["chat_tester", "chat_tester"])
+        self.whisper(msg, "chat_tester")
+        self.whisper(msg, ["chat_tester", "chat_tester"])
 
 
 def main():
