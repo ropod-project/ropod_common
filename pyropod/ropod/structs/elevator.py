@@ -22,7 +22,7 @@ class ElevatorRequest(object):
 
     def to_dict(self):
         request_dict = dict()
-        request_dict['id'] = self.elevator_id
+        request_dict['elevatorId'] = self.elevator_id
         request_dict['operationalMode'] = self.operational_mode
         request_dict['startFloor'] = self.start_floor
         request_dict['goalFloor'] = self.goal_floor
@@ -60,7 +60,7 @@ class Elevator(object):
 
     def to_dict(self):
         elevator_dict = dict()
-        elevator_dict['id'] = self.elevator_id
+        elevator_dict['elevatorId'] = self.elevator_id
         elevator_dict['floor'] = self.floor
         elevator_dict['calls'] = self.calls
         elevator_dict['isAvailable'] = self.is_available
@@ -71,7 +71,7 @@ class Elevator(object):
     @staticmethod
     def from_dict(elevator_dict):
         elevator = Elevator()
-        elevator.elevator_id = elevator_dict['id']
+        elevator.elevator_id = elevator_dict['elevatorId']
         elevator.floor = elevator_dict['floor']
         elevator.calls = elevator_dict['calls']
         elevator.is_available = elevator_dict['isAvailable']
