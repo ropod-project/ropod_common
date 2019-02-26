@@ -8,7 +8,7 @@ meta_model_template = 'ropod-%s-schema.json'
 
 class MessageFactory(object):
 
-    def create_message(self, contents, recipients=None):
+    def create_message(self, contents, recipients=[]):
         if isinstance(contents, Task):
             model = 'TASK'
         elif isinstance(contents, TaskRequest):
@@ -26,7 +26,7 @@ class MessageFactory(object):
         return msg
 
     def get_query_msg(self, msg_type, payload_key, payload_value, success, receiverId):
-        '''Returns a dictionary representing a query response for the given 
+        '''Returns a dictionary representing a query response for the given
         message type.
         Assumption: header uses 'ropod-msg-schema.json' meta model
 
@@ -46,7 +46,7 @@ class MessageFactory(object):
         return response_msg
 
     @staticmethod
-    def get_header(message_type, meta_model='msg', recipients=None):
+    def get_header(message_type, meta_model='msg', recipients=[]):
         if recipients is not None and not isinstance(recipients, list):
             raise Exception("Recipients must be a list of strings")
 
