@@ -1,0 +1,34 @@
+version: 1
+formatters:
+  default:
+    format: '[%(levelname)-5.5s]  %(asctime)s [%(name)-25.25s] %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+handlers:
+  console:
+    class: ropod.utils.logging.color.ColorizingStreamHandler
+    level: DEBUG
+    formatter: default
+    stream: ext://sys.stdout
+  file:
+    class: logging.handlers.TimedRotatingFileHandler
+    level: DEBUG
+    formatter: default
+    filename: /var/log/ropod/fms/example.log
+    when: 'm'
+    interval: 5
+loggers:
+  requests:
+    level: WARNING
+    handlers: [console]
+    propagate: no
+  pyre:
+    level: WARNING
+    handlers: [console]
+    propagate: no
+  urllib3:
+    level: WARNING
+    handlers: [console]
+    propagate: no
+root:
+  level: DEBUG
+  handlers: [console, file]
