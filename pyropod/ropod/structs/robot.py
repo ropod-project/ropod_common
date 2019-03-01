@@ -37,8 +37,7 @@ class Robot(object):
 
     @staticmethod
     def from_dict(robot_dict):
-        robot = Robot()
-        robot.robot_id = robot_dict['robotId']
+        robot = Robot(robot_dict['robotId'])
         robot.schedule = robot_dict['schedule']
         robot.nickname = robot_dict.get('nickname', None)
         robot.uuid = robot_dict.get('uuid')
