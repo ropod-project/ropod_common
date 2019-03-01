@@ -168,7 +168,6 @@ class RopodPyre(PyreBase):
 
         if isinstance(msg, dict):
             # Add message to list of messages that need acknowledgment
-            # TODO we shouldn't add every single message, but only those that are of the right type
             if self.acknowledge:
                 self.check_msg_retries(msg, "WHISPER", peer=peer)
 
