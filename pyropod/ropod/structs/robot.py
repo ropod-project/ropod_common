@@ -116,7 +116,7 @@ class Software(object):
                 'localization': localization}
 
     @staticmethod
-    def world_model_sw(ed=None, osm=None, overpass=None, wm_mediator=None):
+    def world_model_sw(ed=None, osm=None, overpass=None, wm_mediator=None, osm_ros=None):
         if ed is None:
             ed = Software.community_pkg('ed')
         if osm is None:
@@ -125,8 +125,11 @@ class Software(object):
             overpass = Software.ropod_sw()
         if wm_mediator is None:
             wm_mediator = Software.ropod_sw()
+        if osm_ros is None:
+            osm_ros = Software.ropod_sw()
 
-        return {'ed': ed, 'osm_bridge': osm, 'overpass': overpass, 'wm_mediator': wm_mediator}
+        return {'ed': ed, 'osm_bridge': osm, 'overpass': overpass, 'wm_mediator': wm_mediator,
+                'osm_bridge_ros_wrapper': osm_ros}
 
     @staticmethod
     def full_version(navigation=None, world_model=None, communication_mediator=None, task_execution=None):
