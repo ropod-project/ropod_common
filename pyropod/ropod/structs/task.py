@@ -152,8 +152,6 @@ class Task(object):
 
     @staticmethod
     def from_request(request):
-        assert(request, TaskRequest)
-
         task = Task()
         task.load_type = request.load_type
         task.load_id = request.load_id
