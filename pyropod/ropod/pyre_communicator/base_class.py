@@ -15,7 +15,7 @@ ZYRE_SLEEP_TIME = 0.250  # type: float
 
 
 class RopodPyre(PyreBase):
-    def __init__(self, node_name, groups, message_types, verbose=False,
+    def __init__(self, node_name, groups, message_types,
                  interface=None, acknowledge=True, ropod_uuid=None, extra_headers={},
                  retries=5):
         """
@@ -23,7 +23,6 @@ class RopodPyre(PyreBase):
         :param node_name: a string containing the name of the node
         :param groups: a list of strings containing the groups the node will join
         :param message_types: a list of strings containing the message types to acknowledge
-        :param verbose: boolean indicating whether to print output to the terminal
         :param interface: sets the interface to be used by the node
         :param acknowledge: boolean indicating whether the node should send acknowledgements for
                             shout and whispered messages
@@ -42,7 +41,7 @@ class RopodPyre(PyreBase):
             self.number_of_retries = retries
 
         super(RopodPyre, self).__init__(node_name, groups, message_types,
-                                        verbose=verbose, interface=interface)
+                                        interface=interface)
 
         self.set_header('name', node_name)
         if ropod_uuid:
