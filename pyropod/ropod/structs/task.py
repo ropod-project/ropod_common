@@ -172,22 +172,6 @@ class Task(object):
 
         return task
 
-    def __eq__(self, other):
-
-        if isinstance(other, self.__class__):
-            return (self.id, self.robot_actions, self.loadType, self.loadId, self.team_robot_ids, self.earliest_start_time,
-                self.latest_start_time, self.estimated_duration, self.earliest_finish_time, self.latest_finish_time,
-                self.start_time, self.finish_time, self.pickup_pose, self.delivery_pose, self.priority, self.status) \
-               == (other.id, other.robot_actions, other.loadType, other.loadId, other.team_robot_ids, other.earliest_start_time,
-                other.latest_start_time, other.estimated_duration, other.earliest_finish_time, other.latest_finish_time,
-                other.start_time, other.finish_time, other.pickup_pose, other.delivery_pose, other.priority, other.status)
-        return False
-
-    def __hash__(self):
-        return hash((self.id, self.robot_actions, self.loadType, self.loadId, self.team_robot_ids, self.earliest_start_time,
-                self.latest_start_time, self.estimated_duration, self.earliest_finish_time, self.latest_finish_time,
-                self.start_time, self.finish_time, self.pickup_pose, self.delivery_pose, self.priority, self.status))
-
 
 
 
