@@ -63,8 +63,8 @@ class Task(object):
     LOW = 3
 
     def __init__(self, id='', robot_actions=dict(), loadType='', loadId='', team_robot_ids=list(),
-                 earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1, start_time=-1,
-                 finish_time=-1, pickup_pose=Area(), delivery_pose=Area(), status=TaskStatus(), priority=NORMAL):
+                 earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1, start_time=-1, finish_time=-1, pickup_pose=Area(), delivery_pose=Area(),
+                 status=TaskStatus(), priority=NORMAL):
 
         if not id:
             self.id = generate_uuid()
@@ -77,6 +77,8 @@ class Task(object):
         self.earliest_start_time = earliest_start_time
         self.latest_start_time = latest_start_time
         self.estimated_duration = estimated_duration
+        self.earliest_finish_time = earliest_start_time + estimated_duration
+        self.latest_finish_time = latest_start_time + estimated_duration
         self.start_time = start_time
         self.finish_time = finish_time
 
@@ -113,6 +115,8 @@ class Task(object):
         task_dict['earliest_start_time'] = self.earliest_start_time
         task_dict['latest_start_time'] = self.latest_start_time
         task_dict['estimated_duration'] = self.estimated_duration
+        task_dict['earliest_finish_time'] = self.earliest_finish_time
+        task_dict['latest_finish_time'] = self.latest_finish_time
         task_dict['start_time'] = self.start_time
         task_dict['finish_time'] = self.finish_time
         task_dict['pickup_pose'] = self.pickup_pose.to_dict()
@@ -137,6 +141,8 @@ class Task(object):
         task.earliest_start_time = task_dict['earliest_start_time']
         task.latest_start_time = task_dict['latest_start_time']
         task.estimated_duration = task_dict['estimated_duration']
+        task.earliest_finish_time = task_dict['earliest_finish_time']
+        task.latest_finish_time = task_dict['latest_finish_time']
         task.start_time = task_dict['start_time']
         task.finish_time = task_dict['finish_time']
         task.pickup_pose = Area.from_dict(task_dict['pickup_pose'])
@@ -165,3 +171,7 @@ class Task(object):
         task.team_robot_ids = None
 
         return task
+
+
+
+
