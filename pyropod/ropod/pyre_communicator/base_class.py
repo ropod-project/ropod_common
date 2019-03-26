@@ -223,7 +223,8 @@ class RopodPyre(PyreBase):
             contents = self.convert_zyre_msg_to_dict(zyre_msg.msg_content)
             header = contents.get('header')
 
-            if not header.get('receiverIds', []) and self.name not in header.get('receiverIds', []):
+            # if receiverIds are specified and this node is not listed there, don't send an acknowledgement
+            if header.get('receiverIds', []) and self.name not in header.get('receiverIds', []):
                 return False
 
             if header.get('type') in self.message_types:
