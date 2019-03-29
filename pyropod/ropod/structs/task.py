@@ -172,6 +172,10 @@ class Task(object):
 
         return task
 
+    def update_earliest_and_latest_finish_time(self, estimated_duration):
+        self.earliest_finish_time = self.earliest_start_time + estimated_duration
+        self.latest_finish_time = self.latest_start_time + estimated_duration
+
 
 
 
