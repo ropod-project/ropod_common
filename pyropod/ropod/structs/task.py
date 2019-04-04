@@ -182,6 +182,10 @@ class Task(object):
         self.earliest_finish_time = self.earliest_start_time + self.estimated_duration
         self.latest_start_time = self.latest_start_time + self.estimated_duration
 
+    def update_task_estimated_duration(self, estimated_duration):
+        self.estimated_duration = estimated_duration
+        self.update_earliest_and_latest_finish_time(estimated_duration)
+
 
 
 
