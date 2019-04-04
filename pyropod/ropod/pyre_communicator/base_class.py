@@ -15,11 +15,8 @@ ZYRE_SLEEP_TIME = 0.250  # type: float
 
 
 class RopodPyre(PyreBase):
-    def __init__(self, node_name, groups, message_types,
-                 interface=None, acknowledge=True, ropod_uuid=None, extra_headers={},
-                 retries=5):
+    def __init__(self, zyre_config, **kwargs):
         """
-
         :param node_name: a string containing the name of the node
         :param groups: a list of strings containing the groups the node will join
         :param message_types: a list of strings containing the message types to acknowledge
@@ -30,18 +27,19 @@ class RopodPyre(PyreBase):
         :param extra_headers: a dictionary containing the additional headers
         """
         self.logger = logging.getLogger('RopodPyre')
-
-        self.acknowledge = acknowledge
-        self.unacknowledged_msgs = {}
-        self.number_of_retries = retries
         self.mf = MessageFactory()
+
+        self.acknowledge = kwargs.get('acknowledge', True)
 
         if self.acknowledge:
             self.unacknowledged_msgs = {}
-            self.number_of_retries = retries
+            self.number_of_retries = kwargs.get('retries', 5)
 
-        super(RopodPyre, self).__init__(node_name, groups, message_types,
-                                        interface=interface)
+        super(RopodPyre, self).__init__(**zyre_config)
+
+        node_name = zyre_config.get('node_name')
+        ropod_uuid = kwargs.get('ropod_uuid', None)
+        extra_headers = kwargs.get('extra_headers', dict())
 
         self.set_header('name', node_name)
         if ropod_uuid:
