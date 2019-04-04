@@ -176,7 +176,7 @@ class Task(object):
         self.earliest_finish_time = self.earliest_start_time + estimated_duration
         self.latest_finish_time = self.latest_start_time + estimated_duration
 
-    def postpone_unallocated_task(self, time):
+    def postpone_task(self, time):
         self.earliest_start_time += time
         self.latest_start_time += time
         self.earliest_finish_time = self.earliest_start_time + self.estimated_duration
