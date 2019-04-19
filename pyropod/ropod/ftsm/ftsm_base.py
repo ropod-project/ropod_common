@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from pyftsm.ftsm import FTSM, FTSMStates, FTSMTransitions
 
 class FTSMBase(FTSM):
@@ -27,12 +28,14 @@ class FTSMBase(FTSM):
         '''
         return FTSMTransitions.RUN
 
+    @abstractmethod
     def running(self):
         '''Abstract method for the behaviour of a component during active operation
         '''
-        pass
+        raise NotImplementedError('[{0}] The implementation of the "running" is mandatory'.format(self.name))
 
+    @abstractmethod
     def recovering(self):
         '''Abstract method for component recovery
         '''
-        pass
+        raise NotImplementedError('[{0}] The implementation of the "recovering" is mandatory'.format(self.name))
