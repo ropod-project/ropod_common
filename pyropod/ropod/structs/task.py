@@ -172,16 +172,24 @@ class Task(object):
 
         return task
 
+    ''' Updates the earliest and latest finish time of a task based on its estimated duration
+    @param estimated duration: seconds (float)
+    '''
     def update_earliest_and_latest_finish_time(self, estimated_duration):
         self.earliest_finish_time = self.earliest_start_time + estimated_duration
         self.latest_finish_time = self.latest_start_time + estimated_duration
 
+    '''@param time: seconds (float)
+    '''
     def postpone_task(self, time):
         self.earliest_start_time += time
         self.latest_start_time += time
         self.earliest_finish_time = self.earliest_start_time + self.estimated_duration
-        self.latest_start_time = self.latest_start_time + self.estimated_duration
+        self.latest_finish_time = self.latest_start_time + self.estimated_duration
 
+    ''' Updates the estimated duration and the earliest and latest finish times
+    @param estimated duration: seconds (float)
+    '''
     def update_task_estimated_duration(self, estimated_duration):
         self.estimated_duration = estimated_duration
         self.update_earliest_and_latest_finish_time(estimated_duration)
