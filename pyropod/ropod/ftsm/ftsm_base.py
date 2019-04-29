@@ -1,6 +1,8 @@
 from abc import abstractmethod
+import time
+import threading
 import pymongo as pm
-from pyftsm.ftsm import FTSM, FTSMTransitions
+from pyftsm.ftsm import FTSM, FTSMStates, FTSMTransitions
 
 class FTSMBase(FTSM):
     '''ROPOD-specific implementation of a fault-tolerant state machine.
@@ -30,8 +32,6 @@ class FTSMBase(FTSM):
         self.component_collection_name = robot_store_component_collection
         self.status_collection_name = robot_store_status_collection
 
-        self.depend_statuses = {}
-
         # we check whether the dependencies match the dependencies in the specification
         # and raise an AssertionError if they don't
         spec_dependencies = self.__get_component_dependencies(name)
@@ -47,6 +47,11 @@ class FTSMBase(FTSM):
             raise AssertionError('''[{0}] The dependency monitors do not match the
                                  monitors in the specification; expected {1}''' \
                                  .format(self.name, spec_dependency_monitors))
+
+        self.depend_statuses = {}
+        self.depend_status_thread = threading.Thread(target=self.get_dependency_statuses)
+        self.depend_status_thread.daemon = True
+        self.depend_status_thread.start()
 
     def init(self):
         '''Method for component initialisation; returns FTSMTransitions.INITIALISED by default
@@ -69,13 +74,13 @@ class FTSMBase(FTSM):
     def running(self):
         '''Abstract method for the behaviour of a component during active operation
         '''
-        raise NotImplementedError('[{0}] The implementation of the "running" is mandatory'.format(self.name))
+        raise NotImplementedError('[{0}] The implementation of the "running" method is mandatory'.format(self.name))
 
     @abstractmethod
     def recovering(self):
         '''Abstract method for component recovery
         '''
-        raise NotImplementedError('[{0}] The implementation of the "recovering" is mandatory'.format(self.name))
+        raise NotImplementedError('[{0}] The implementation of the "recovering" method is mandatory'.format(self.name))
 
     def get_dependency_statuses(self):
         '''Returns a dictionary representing the statuses
@@ -106,28 +111,31 @@ class FTSMBase(FTSM):
         component_name: str -- name of a component
 
         '''
-        try:
-            collection = self.__get_collection(self.status_collection_name)
+        while not self.is_running:
+            time.sleep(0.5)
 
-            # we look for the statuses of all dependency monitors that we are interested in
-            # and save them depending on the monitor type
-            for _, monitors in self.dependency_monitors.items():
-                for monitor_type, monitor_specs in monitors.items():
-                    component_name, monitor_name = monitor_specs.split('/')
-                    status_doc = collection.find_one({'id': component_name})
-                    for monitor_data in status_doc['monitor_status']:
-                        if monitor_name != monitor_data['monitorName']:
-                            continue
+        while self.current_state != FTSMStates.STOPPED and self.is_running:
+            try:
+                collection = self.__get_collection(self.status_collection_name)
 
-                        if monitor_type not in self.depend_statuses:
-                            self.depend_statuses[monitor_type] = {}
+                # we look for the statuses of all dependency monitors that we are interested in
+                # and save them depending on the monitor type
+                for _, monitors in self.dependency_monitors.items():
+                    for monitor_type, monitor_specs in monitors.items():
+                        component_name, monitor_name = monitor_specs.split('/')
+                        status_doc = collection.find_one({'id': component_name})
+                        for monitor_data in status_doc['monitor_status']:
+                            if monitor_name != monitor_data['monitorName']:
+                                continue
 
-                        self.depend_statuses[monitor_type][monitor_name] = \
-                            monitor_data['healthStatus']
-            return self.depend_statuses
-        except pm.errors.OperationFailure as exc:
-            print('[ftms_base] {0}'.format(exc))
-            raise
+                            if monitor_type not in self.depend_statuses:
+                                self.depend_statuses[monitor_type] = {}
+
+                            self.depend_statuses[monitor_type][monitor_specs] = \
+                                monitor_data['healthStatus']
+                return self.depend_statuses
+            except pm.errors.OperationFailure as exc:
+                print('[ftms_base] {0}'.format(exc))
 
     def __get_component_dependencies(self, component_name):
         '''Returns a list of components that the given component is dependent on,
