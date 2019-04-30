@@ -120,18 +120,21 @@ class FTSMBase(FTSM):
 
                 # we look for the statuses of all dependency monitors that we are interested in
                 # and save them depending on the monitor type
-                for _, monitors in self.dependency_monitors.items():
-                    for monitor_type, monitor_specs in monitors.items():
+                for monitor_type, monitors in self.dependency_monitors.items():
+                    if monitor_type not in self.depend_statuses:
+                        self.depend_statuses[monitor_type] = {}
+
+                    for depend_comp, monitor_specs in monitors.items():
+                        if depend_comp not in self.depend_statuses[monitor_type]:
+                            self.depend_statuses[monitor_type][depend_comp] = {}
+
                         component_name, monitor_name = monitor_specs.split('/')
                         status_doc = collection.find_one({'id': component_name})
                         for monitor_data in status_doc['monitor_status']:
                             if monitor_name != monitor_data['monitorName']:
                                 continue
 
-                            if monitor_type not in self.depend_statuses:
-                                self.depend_statuses[monitor_type] = {}
-
-                            self.depend_statuses[monitor_type][monitor_specs] = \
+                            self.depend_statuses[monitor_type][depend_comp][monitor_specs] = \
                                 monitor_data['healthStatus']
                 return self.depend_statuses
             except pm.errors.OperationFailure as exc:
