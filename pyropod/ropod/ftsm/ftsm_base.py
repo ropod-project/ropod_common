@@ -4,6 +4,10 @@ import threading
 import pymongo as pm
 from pyftsm.ftsm import FTSM, FTSMStates, FTSMTransitions
 
+class DependMonitorTypes(object):
+    HEARTBEAT = 'heartbeat'
+    FUNCTIONAL = 'functional'
+
 class FTSMBase(FTSM):
     '''ROPOD-specific implementation of a fault-tolerant state machine.
 
@@ -74,13 +78,22 @@ class FTSMBase(FTSM):
     def running(self):
         '''Abstract method for the behaviour of a component during active operation
         '''
-        raise NotImplementedError('[{0}] The implementation of the "running" method is mandatory'.format(self.name))
+        raise NotImplementedError('''[{0}] The implementation of the "running"
+                                  method is mandatory'''.format(self.name))
 
     @abstractmethod
     def recovering(self):
         '''Abstract method for component recovery
         '''
-        raise NotImplementedError('[{0}] The implementation of the "recovering" method is mandatory'.format(self.name))
+        raise NotImplementedError('''[{0}] The implementation of the "recovering"
+                                  method is mandatory'''.format(self.name))
+
+    def process_depend_statuses(self):
+        '''Processes the statuses of the component dependencies and returns
+        a state transition string from FTSMTransitions (or None if no transition
+        needs to take place.) The default implementation simply returns None.
+        '''
+        return None
 
     def get_dependency_statuses(self):
         '''Returns a dictionary representing the statuses
@@ -136,7 +149,7 @@ class FTSMBase(FTSM):
 
                             self.depend_statuses[monitor_type][depend_comp][monitor_specs] = \
                                 monitor_data['healthStatus']
-                return self.depend_statuses
+                time.sleep(0.5)
             except pm.errors.OperationFailure as exc:
                 print('[ftms_base] {0}'.format(exc))
 
