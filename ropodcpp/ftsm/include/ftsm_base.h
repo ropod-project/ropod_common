@@ -27,7 +27,7 @@ namespace ftsm
                  std::string robot_store_db_name="robot_store", int robot_store_db_port=27017,
                  std::string robot_store_component_collection="components",
                  std::string robot_store_status_collection="status",
-                 bool debug=true);
+                 bool debug=false);
 
         /**
          * Method for component initialisation
