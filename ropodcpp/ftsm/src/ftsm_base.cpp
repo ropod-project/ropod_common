@@ -49,6 +49,20 @@ namespace ftsm
         //                           " the monitors in the specification";
         // }
 
+        for (auto monitor_data : this->dependency_monitors)
+        {
+            std::string monitor_type = monitor_data.first;
+            std::map<std::string, std::string> monitors = monitor_data.second;
+            this->depend_statuses[monitor_type] = std::map<std::string, std::map<std::string, std::string>>();
+            for (auto monitor_desc : monitors)
+            {
+                std::string depend_comp = monitor_desc.first;
+                std::string monitor_spec = monitor_desc.second;
+                this->depend_statuses[monitor_type][depend_comp] = std::map<std::string, std::string>();
+                this->depend_statuses[monitor_type][depend_comp][monitor_spec] = "";
+            }
+        }
+
         this->depend_status_thread = std::thread(&FTSMBase::getDependencyStatuses, this);
     }
 
@@ -158,12 +172,58 @@ namespace ftsm
     {
         while (!this->is_running)
         {
-            // TODO: sleep
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
 
         while (this->current_state != FTSMStates::STOPPED && this->is_running)
         {
+            try
+            {
+                mongocxx::client connection_{mongocxx::uri{}};
+                auto collection = connection_[this->robot_store_db_name]
+                                             [this->robot_store_status_collection];
 
+                for (auto monitor_data : this->dependency_monitors)
+                {
+                    std::string monitor_type = monitor_data.first;
+                    std::map<std::string, std::string> monitors = monitor_data.second;
+
+                    for (auto monitor_desc : monitors)
+                    {
+                        std::string depend_comp = monitor_desc.first;
+                        std::string monitor_spec = monitor_desc.second;
+
+                        int separator_idx = monitor_spec.find("/");
+                        std::string component_name = monitor_spec.substr(0, separator_idx);
+                        std::string monitor_name = monitor_spec.substr(separator_idx+1);
+
+                        auto status_doc = collection.find_one(bsoncxx::builder::stream::document{}
+                                                              << "id" << component_name
+                                                              << bsoncxx::builder::stream::finalize);
+                        auto document_view = (*status_doc).view();
+
+                        for (auto monitor_data : document_view["monitor_status"].get_array().value)
+                        {
+                            std::string current_monitor_name = std::string(monitor_data["monitorName"].get_utf8().value);
+                            if (monitor_name != current_monitor_name)
+                                continue;
+
+                            this->depend_statuses[monitor_type][depend_comp][monitor_spec] =
+                                bsoncxx::to_json(monitor_data["healthStatus"].get_document().view());
+
+                            if (this->debug)
+                            {
+                                std::cout << monitor_type << " -- " << depend_comp << " -- " << monitor_spec << std::endl;
+                                std::cout << this->depend_statuses[monitor_type][depend_comp][monitor_spec] << std::endl;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (std::exception& e)
+            {
+                std::cout << e.what() << std::endl;
+            }
         }
     }
 }

@@ -1,4 +1,6 @@
+#include <chrono>
 #include <thread>
+#include <exception>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/string/to_string.hpp>
@@ -25,7 +27,7 @@ namespace ftsm
                  std::string robot_store_db_name="robot_store", int robot_store_db_port=27017,
                  std::string robot_store_component_collection="components",
                  std::string robot_store_status_collection="status",
-                 bool debug=false);
+                 bool debug=true);
 
         /**
          * Method for component initialisation
@@ -63,7 +65,30 @@ namespace ftsm
 
         std::string robot_store_status_collection;
 
-        std::map<std::string, std::string> dependency_statuses;
+        /*
+        A dictionary of the form
+        {
+            component_monitor_type
+            {
+                component_name
+                {
+                    monitor: status
+                }
+            }
+        }
+
+        Example:
+        {
+            functional
+            {
+                smart_wheel
+                {
+                    ros/smart_wheel_ethercat_parser: [status-msg]
+                }
+            }
+        }
+         */
+        std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> depend_statuses;
     private:
         std::vector<std::string> getComponentDependencies(std::string component_name);
 
