@@ -10,6 +10,22 @@ namespace
         list_str += strings[strings.size() - 1] + "]";
         return list_str;
     }
+
+    std::string formatStrMap(std::map<std::string, std::map<std::string, std::string>> strings)
+    {
+        std::string map_str = "{\n";
+        for (auto item : strings)
+        {
+            map_str += "  " + item.first + ":\n  {\n";
+            for (auto monitors : item.second)
+            {
+                map_str += "    {" + monitors.first + ": " + monitors.second + " }\n";
+            }
+            map_str += "  }\n";
+        }
+        map_str += "}\n";
+        return map_str;
+    }
 }
 
 namespace ftsm
@@ -34,20 +50,22 @@ namespace ftsm
         this->debug = debug;
 
         auto spec_dependencies = this->getComponentDependencies(name);
-        // if (this->dependencies != spec_dependencies)
-        // {
-        //     std::string exc_msg = "[" + this->name + "] The component dependencies do not match" +
-        //                           " the dependencies in the specification; expected " +
-        //                           formatStrList(spec_dependencies);
-        //     throw exc_msg;
-        // }
+        if (this->dependencies != spec_dependencies)
+        {
+            std::string exc_msg = "[" + this->name + "] The component dependencies do not match" +
+                                  " the dependencies in the specification; expected " +
+                                  formatStrList(spec_dependencies);
+            throw exc_msg;
+        }
 
         auto spec_dependency_monitors = this->getDependencyMonitors(name);
-        // if (this->dependency_monitors != spec_dependency_monitors)
-        // {
-        //     std::string exc_msg = "[" + this->name + "] The dependency monitors do not match" +
-        //                           " the monitors in the specification";
-        // }
+        if (this->dependency_monitors != spec_dependency_monitors)
+        {
+            std::string exc_msg = "[" + this->name + "] The dependency monitors do not match" +
+                                  " the monitors in the specification " +
+                                  formatStrMap(spec_dependency_monitors);
+            throw exc_msg;
+        }
 
         for (auto monitor_data : this->dependency_monitors)
         {
