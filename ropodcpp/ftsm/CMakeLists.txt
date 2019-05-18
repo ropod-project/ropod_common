@@ -6,6 +6,7 @@ pkg_check_modules(LIBMONGOCXX REQUIRED libmongocxx)
 pkg_check_modules(LIBBSONCXX REQUIRED libbsoncxx)
 
 include_directories(
+  /opt/ropod/ftsm/cppftsm/include
   /opt/ropod/ropod_common/ropodcpp/ftsm/include
   ${LIBMONGOCXX_INCLUDE_DIRS}
   ${LIBBSONCXX_INCLUDE_DIRS}
