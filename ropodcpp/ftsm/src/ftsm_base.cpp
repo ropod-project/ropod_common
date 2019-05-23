@@ -40,7 +40,7 @@ namespace ftsm
                        std::string robot_store_component_collection,
                        std::string robot_store_status_collection,
                        bool debug)
-     : FTSM(name, dependencies, max_recovery_attempts)
+     : FTSM(name, dependencies, max_recovery_attempts), connection_{mongocxx::uri{}}
     {
         this->dependency_monitors = dependency_monitors;
         this->robot_store_db_name = robot_store_db_name;
@@ -101,7 +101,6 @@ namespace ftsm
 
     std::vector<std::string> FTSMBase::getComponentDependencies(std::string component_name)
     {
-        mongocxx::client connection_{mongocxx::uri{}};
         auto collection = connection_[this->robot_store_db_name]
                                      [this->robot_store_component_collection];
         auto component_doc = collection.find_one(bsoncxx::builder::stream::document{}
@@ -137,7 +136,6 @@ namespace ftsm
 
     std::map<std::string, std::map<std::string, std::string>> FTSMBase::getDependencyMonitors(std::string component_name)
     {
-        mongocxx::client connection_{mongocxx::uri{}};
         auto collection = connection_[this->robot_store_db_name]
                                      [this->robot_store_component_collection];
         auto component_doc = collection.find_one(bsoncxx::builder::stream::document{}
@@ -197,7 +195,6 @@ namespace ftsm
         {
             try
             {
-                mongocxx::client connection_{mongocxx::uri{}};
                 auto collection = connection_[this->robot_store_db_name]
                                              [this->robot_store_status_collection];
 
