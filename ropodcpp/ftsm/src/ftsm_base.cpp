@@ -33,8 +33,8 @@ namespace ftsm
     std::string DependMonitorTypes::HEARTBEAT = "heartbeat";
     std::string DependMonitorTypes::FUNCTIONAL = "functional";
 
-    FTSMBase::FTSMBase(std::string name, std::vector<std::string> dependencies,
-                       std::map<std::string, std::map<std::string, std::string>> dependency_monitors,
+    FTSMBase::FTSMBase(const std::string &name, const std::vector<std::string> &dependencies,
+                       const std::map<std::string, std::map<std::string, std::string>> &dependency_monitors,
                        int max_recovery_attempts,
                        std::string robot_store_db_name, int robot_store_db_port,
                        std::string robot_store_component_collection,
@@ -239,6 +239,7 @@ namespace ftsm
             {
                 std::cout << e.what() << std::endl;
             }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
     }
 }
