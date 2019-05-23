@@ -21,8 +21,8 @@ namespace ftsm
     class FTSMBase : public FTSM
     {
     public:
-        FTSMBase(std::string name, std::vector<std::string> dependencies,
-                 std::map<std::string, std::map<std::string, std::string>> dependency_monitors={},
+        FTSMBase(const std::string &name, const std::vector<std::string> &dependencies,
+                 const std::map<std::string, std::map<std::string, std::string>> &dependency_monitors={},
                  int max_recovery_attempts=1,
                  std::string robot_store_db_name="robot_store", int robot_store_db_port=27017,
                  std::string robot_store_component_collection="components",
