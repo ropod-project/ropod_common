@@ -99,5 +99,8 @@ namespace ftsm
         std::thread depend_status_thread;
 
         bool debug;
+
+        mongocxx::instance mongo_instance;
+        mongocxx::client connection_;
     };
 }
