@@ -37,7 +37,6 @@ class TaskRequest(object):
 
     @staticmethod
     def from_dict(request_dict):
-
         request = TaskRequest()
         request.load_type = request_dict["loadType"]
         request.load_id = request_dict["loadId"]
@@ -45,13 +44,22 @@ class TaskRequest(object):
         request.earliest_start_time = request_dict["earliestStartTime"]
         request.latest_start_time = request_dict["latestStartTime"]
 
-        request.pickup_pose = Area()
-        request.pickup_pose.name = request_dict["pickupLocation"]
-        request.pickup_pose.floor_number = request_dict["pickupLocationLevel"]
+        pickup_area_dict = request_dict.get('pickup_pose', None)
+        if pickup_area_dict:
+            request.pickup_pose = Area.from_dict(pickup_area_dict)
+        else:# when the provided dict is from json schema
+            request.pickup_pose = Area()
+            request.pickup_pose.name = request_dict.get("pickupLocation", '')
+            request.pickup_pose.floor_number = request_dict.get("pickupLocationLevel", 0)
 
-        request.delivery_pose = Area()
-        request.delivery_pose.name = request_dict["deliveryLocation"]
-        request.delivery_pose.floor_number = request_dict["deliveryLocationLevel"]
+        delivery_area_dict = request_dict.get('delivery_pose', None)
+        if delivery_area_dict:
+            request.delivery_pose = Area.from_dict(delivery_area_dict)
+        else:# when the provided dict is from json schema
+            request.delivery_pose = Area()
+            request.delivery_pose.name = request_dict.get("deliveryLocation", '')
+            request.delivery_pose.floor_number = request_dict.get("deliveryLocationLevel", 0)
+
         request.priority = request_dict["priority"]
         return request
 
