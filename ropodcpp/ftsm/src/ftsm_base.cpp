@@ -99,6 +99,11 @@ namespace ftsm
         return ftsm::FTSMTransitions::RUN;
     }
 
+    std::string FTSMBase::processDependStatuses()
+    {
+        return "";
+    }
+
     std::vector<std::string> FTSMBase::getComponentDependencies(std::string component_name)
     {
         auto collection = connection_[this->robot_store_db_name]

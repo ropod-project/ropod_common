@@ -54,6 +54,12 @@ namespace ftsm
          */
         virtual std::string recovering() = 0;
 
+        /**
+         * Processes the statuses of the component dependencies and returns
+         * a state transition string from FTSMTransitions (or "" if no transition
+         * needs to take place.) The default implementation simply returns "".
+         */
+        virtual std::string processDependStatuses();
     protected:
         std::map<std::string, std::map<std::string, std::string>> dependency_monitors;
 
