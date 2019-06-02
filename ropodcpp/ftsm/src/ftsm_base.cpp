@@ -104,6 +104,19 @@ namespace ftsm
         return "";
     }
 
+    Json::Value FTSMBase::convertStringToJson(const std::string &msg)
+    {
+        std::stringstream msg_stream;
+        msg_stream << msg;
+
+        Json::Value root;
+        Json::CharReaderBuilder reader_builder;
+        std::string errors;
+        // TODO: handle exceptions
+        bool ok = Json::parseFromStream(reader_builder, msg_stream, &root, &errors);
+        return root;
+    }
+
     std::vector<std::string> FTSMBase::getComponentDependencies(std::string component_name)
     {
         auto collection = connection_[this->robot_store_db_name]

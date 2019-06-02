@@ -1,9 +1,11 @@
 #include <chrono>
 #include <thread>
 #include <exception>
+#include <sstream>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/string/to_string.hpp>
+#include <json/json.h>
 
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
@@ -60,6 +62,8 @@ namespace ftsm
          * needs to take place.) The default implementation simply returns "".
          */
         virtual std::string processDependStatuses();
+
+        Json::Value convertStringToJson(const std::string &msg);
     protected:
         std::map<std::string, std::map<std::string, std::string>> dependency_monitors;
 
