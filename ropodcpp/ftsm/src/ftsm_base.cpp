@@ -33,6 +33,8 @@ namespace ftsm
     std::string DependMonitorTypes::HEARTBEAT = "heartbeat";
     std::string DependMonitorTypes::FUNCTIONAL = "functional";
 
+    std::string MonitorConstants::NONE = "none";
+
     FTSMBase::FTSMBase(const std::string &name, const std::vector<std::string> &dependencies,
                        const std::map<std::string, std::map<std::string, std::string>> &dependency_monitors,
                        int max_recovery_attempts,
@@ -225,6 +227,8 @@ namespace ftsm
                     {
                         std::string depend_comp = monitor_desc.first;
                         std::string monitor_spec = monitor_desc.second;
+                        if (monitor_spec == MonitorConstants::NONE)
+                            continue;
 
                         int separator_idx = monitor_spec.find("/");
                         std::string component_name = monitor_spec.substr(0, separator_idx);

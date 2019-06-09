@@ -20,6 +20,11 @@ namespace ftsm
         static std::string FUNCTIONAL;
     };
 
+    struct MonitorConstants
+    {
+        static std::string NONE;
+    };
+
     class FTSMBase : public FTSM
     {
     public:
