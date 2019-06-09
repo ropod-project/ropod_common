@@ -8,6 +8,9 @@ class DependMonitorTypes(object):
     HEARTBEAT = 'heartbeat'
     FUNCTIONAL = 'functional'
 
+class MonitorConstants(object):
+    NONE = 'none'
+
 class FTSMBase(FTSM):
     '''ROPOD-specific implementation of a fault-tolerant state machine.
 
@@ -138,6 +141,9 @@ class FTSMBase(FTSM):
                         self.depend_statuses[monitor_type] = {}
 
                     for depend_comp, monitor_specs in monitors.items():
+                        if monitor_specs == MonitorConstants.NONE:
+                            continue
+
                         if depend_comp not in self.depend_statuses[monitor_type]:
                             self.depend_statuses[monitor_type][depend_comp] = {}
 
