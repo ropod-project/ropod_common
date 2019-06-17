@@ -51,7 +51,9 @@ class RopodPyre(PyreBase):
             for key in extra_headers:
                 self.set_header(key, extra_headers[key])
 
-        self.logger.info('Initialized %s', self.name())
+        # self.logger.info('Initialized %s', self.name())
+        self.logger.info('Initialized %s', self.name)
+
 
     def receive_msg_cb(self, msg_content):
         pass
@@ -109,7 +111,8 @@ class RopodPyre(PyreBase):
             except (KeyboardInterrupt, SystemExit):
                 self.terminated = True
                 break
-        self.logger.info("Node %s exiting..." % self.name())
+        # self.logger.info("Node %s exiting..." % self.name())
+        self.logger.info("Node %s exiting..." % self.name)
 
     def zyre_event_cb(self, zyre_msg):
         if zyre_msg.msg_type in ("SHOUT", "WHISPER"):
