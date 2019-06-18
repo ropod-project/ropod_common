@@ -300,6 +300,10 @@ class RopodPyre(PyreBase):
         This is a ROPOD specific function
         :return:
         """
+
+        if not self.acknowledge:
+            return
+
         dropped_msgs = []
 
         for msg_id, attempt_info in self.unacknowledged_msgs.items():
