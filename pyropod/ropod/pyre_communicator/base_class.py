@@ -29,7 +29,7 @@ class RopodPyre(PyreBase):
         self.logger = logging.getLogger('RopodPyre')
         self.mf = MessageFactory()
 
-        self.acknowledge = kwargs.get('acknowledge', True)
+        self.acknowledge = kwargs.get('acknowledge', False)
 
         if self.acknowledge:
             self.unacknowledged_msgs = {}
