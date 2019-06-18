@@ -70,7 +70,7 @@ class Elevator(object):
 
     @staticmethod
     def from_dict(elevator_dict):
-        elevator = Elevator()
+        elevator = Elevator(elevator_dict['elevatorId'])
         elevator.elevator_id = elevator_dict['elevatorId']
         elevator.floor = elevator_dict['floor']
         elevator.calls = elevator_dict['calls']
