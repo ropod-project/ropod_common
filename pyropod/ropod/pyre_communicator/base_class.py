@@ -112,8 +112,7 @@ class RopodPyre(PyreBase):
             except (KeyboardInterrupt, SystemExit):
                 self.terminated = True
                 break
-        # self.logger.info("Node %s exiting..." % self.name())
-        self.logger.info("Node %s exiting..." % self.name)
+        self.logger.info("Node %s exiting..." % self.name())
 
     def zyre_event_cb(self, zyre_msg):
         if zyre_msg.msg_type in ("SHOUT", "WHISPER"):
