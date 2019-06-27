@@ -1,5 +1,6 @@
 from ropod.utils.uuid import generate_uuid
 from ropod.structs.status import RobotStatus
+from ropod.utils.to_csv import flatten_dict, keep_entry
 
 
 class Robot(object):
@@ -44,6 +45,16 @@ class Robot(object):
         robot.status = RobotStatus.from_dict(robot_dict['status'])
         robot.version = robot_dict.get('version')
         return robot
+
+    @staticmethod
+    def to_csv(robot_dict):
+        """ Prepares dict to be written to a csv
+        :return: dict
+        """
+        flattened_dict = flatten_dict(robot_dict)
+        to_csv_dict = keep_entry(flattened_dict, 'status', ['status'])
+
+        return to_csv_dict
 
 
 class Hardware(object):
