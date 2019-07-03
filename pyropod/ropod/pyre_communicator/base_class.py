@@ -17,10 +17,11 @@ ZYRE_SLEEP_TIME = 0.250  # type: float
 class RopodPyre(PyreBase):
     def __init__(self, zyre_config, **kwargs):
         """
-        :param node_name: a string containing the name of the node
-        :param groups: a list of strings containing the groups the node will join
-        :param message_types: a list of strings containing the message types to acknowledge
-        :param interface: sets the interface to be used by the node
+        :param zyre_config: a dictionary containing the parameters for the pyre base class:
+                            node_name: a string containing the name of the node
+                            groups: a list of strings containing the groups the node will join
+                            message_types: a list of strings containing the message types to acknowledge
+                            interface: sets the interface to be used by the node
         :param acknowledge: boolean indicating whether the node should send acknowledgements for
                             shout and whispered messages
         :param ropod_uuid: a string containing the hexadecimal version of a nodes uuid
