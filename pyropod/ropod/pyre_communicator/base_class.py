@@ -51,7 +51,7 @@ class RopodPyre(PyreBase):
             for key in extra_headers:
                 self.set_header(key, extra_headers[key])
 
-        self.logger.info('Initialized %s', self.name)
+        self.logger.info('Initialized %s', self.name())
         self.logger.debug("Zyre config: %s", zyre_config)
         self.logger.debug("Extra headers: %s ", extra_headers)
         self.logger.debug("Acknowledgements: %s", self.acknowledge)
