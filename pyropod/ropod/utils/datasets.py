@@ -1,3 +1,6 @@
+""" Include methods to prepare and write struct objects to csv files
+"""
+
 import csv
 
 

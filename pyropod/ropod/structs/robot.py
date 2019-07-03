@@ -1,6 +1,6 @@
 from ropod.utils.uuid import generate_uuid
 from ropod.structs.status import RobotStatus
-from ropod.utils.to_csv import flatten_dict, keep_entry
+from ropod.utils.datasets import flatten_dict, keep_entry
 
 
 class Robot(object):

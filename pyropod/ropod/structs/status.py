@@ -1,5 +1,5 @@
 from ropod.structs.area import Area
-from ropod.utils.to_csv import flatten_dict, keep_entry
+from ropod.utils.datasets import flatten_dict, keep_entry
 
 
 SUCCESS = 0
@@ -44,14 +44,14 @@ class RobotStatus(object):
         return status
 
     @staticmethod
-    def export(status_dict):
-        """ Prepares dict to be exported to a csv
+    def to_csv(status_dict):
+        """ Prepares dict to be written to a csv
         :return: dict
         """
         flattened_dict = flatten_dict(status_dict)
-        export_dict = keep_entry(flattened_dict, 'currentLocation', ['name'])
+        to_csv_dict = keep_entry(flattened_dict, 'currentLocation', ['name'])
 
-        return export_dict
+        return to_csv_dict
 
 
 class TaskStatus(object):
@@ -88,8 +88,8 @@ class TaskStatus(object):
         return status
 
     @staticmethod
-    def export(status_dict):
-        """ Prepares dict to be exported to a csv
+    def to_csv(status_dict):
+        """ Prepares dict to be written to a csv
         :return: dict
         """
         # The dictionary is already flat and ready to be exported

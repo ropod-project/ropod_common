@@ -2,7 +2,7 @@ from ropod.utils.uuid import generate_uuid
 from ropod.structs.area import Area
 from ropod.structs.action import Action
 from ropod.structs.status import TaskStatus
-from ropod.utils.to_csv import flatten_dict, keep_entry
+from ropod.utils.datasets import flatten_dict, keep_entry
 
 
 class RobotTask(object):
@@ -57,12 +57,12 @@ class TaskRequest(object):
         return request
 
     @staticmethod
-    def export(task_dict):
-        """ Prepares dict to be exported to a csv
+    def to_csv(task_dict):
+        """ Prepares dict to be written to a csv
         :return: dict
         """
-        flattened_dict = flatten_dict(task_dict)
-        return flattened_dict
+        to_csv_dict = flatten_dict(task_dict)
+        return to_csv_dict
 
 
 class Task(object):
@@ -169,17 +169,17 @@ class Task(object):
         return task
 
     @staticmethod
-    def export(task_dict):
-        """ Prepares dict to be exported to a csv
+    def to_csv(task_dict):
+        """ Prepares dict to be written to a csv
         :return: dict
         """
         flattened_dict = flatten_dict(task_dict)
 
-        export_dict = keep_entry(flattened_dict, 'pickup_pose', ['name'])
-        export_dict = keep_entry(export_dict, 'delivery_pose', ['name'])
-        export_dict = keep_entry(export_dict, 'status', ['status'])
+        to_csv_dict = keep_entry(flattened_dict, 'pickup_pose', ['name'])
+        to_csv_dict = keep_entry(to_csv_dict, 'delivery_pose', ['name'])
+        to_csv_dict = keep_entry(to_csv_dict, 'status', ['status'])
 
-        return export_dict
+        return to_csv_dict
 
     @staticmethod
     def from_request(request):
