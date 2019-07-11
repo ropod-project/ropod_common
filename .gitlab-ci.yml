@@ -19,13 +19,15 @@ before_script:
   - docker info
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN git.ropod.org:4567
   - echo $CONTAINER_TEST_IMAGE
+  - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
 
 build:
   stage: build
   script:
     - docker build --pull -t $CONTAINER_TEST_IMAGE .
     - docker push $CONTAINER_TEST_IMAGE
-
+    - docker build --pull -t "$CI_REGISTRY_IMAGE" .
+    - docker push "$CI_REGISTRY_IMAGE"
 test:
   stage: test
   script:
