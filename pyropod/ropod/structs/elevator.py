@@ -50,8 +50,8 @@ class ElevatorRequest(object):
 
 
 class Elevator(object):
-    def __init__(self):
-        self.elevator_id = -1
+    def __init__(self, elevator_id):
+        self.elevator_id = elevator_id
         self.floor = -1 # TODO: Need to match floors from toma messages to world model ones
         self.calls = -1
         self.is_available = False
@@ -70,7 +70,7 @@ class Elevator(object):
 
     @staticmethod
     def from_dict(elevator_dict):
-        elevator = Elevator()
+        elevator = Elevator(elevator_dict['elevatorId'])
         elevator.elevator_id = elevator_dict['elevatorId']
         elevator.floor = elevator_dict['floor']
         elevator.calls = elevator_dict['calls']

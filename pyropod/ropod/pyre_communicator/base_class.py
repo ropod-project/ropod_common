@@ -15,34 +15,32 @@ ZYRE_SLEEP_TIME = 0.250  # type: float
 
 
 class RopodPyre(PyreBase):
-    def __init__(self, node_name, groups, message_types, verbose=False,
-                 interface=None, acknowledge=True, ropod_uuid=None, extra_headers={},
-                 retries=5):
+    def __init__(self, zyre_config, **kwargs):
         """
-
-        :param node_name: a string containing the name of the node
-        :param groups: a list of strings containing the groups the node will join
-        :param message_types: a list of strings containing the message types to acknowledge
-        :param verbose: boolean indicating whether to print output to the terminal
-        :param interface: sets the interface to be used by the node
+        :param zyre_config: a dictionary containing the parameters for the pyre base class:
+                            node_name: a string containing the name of the node
+                            groups: a list of strings containing the groups the node will join
+                            message_types: a list of strings containing the message types to acknowledge
+                            interface: sets the interface to be used by the node
         :param acknowledge: boolean indicating whether the node should send acknowledgements for
                             shout and whispered messages
         :param ropod_uuid: a string containing the hexadecimal version of a nodes uuid
         :param extra_headers: a dictionary containing the additional headers
         """
         self.logger = logging.getLogger('RopodPyre')
-
-        self.acknowledge = acknowledge
-        self.unacknowledged_msgs = {}
-        self.number_of_retries = retries
         self.mf = MessageFactory()
+
+        self.acknowledge = kwargs.get('acknowledge', False)
 
         if self.acknowledge:
             self.unacknowledged_msgs = {}
-            self.number_of_retries = retries
+            self.number_of_retries = kwargs.get('retries', 5)
 
-        super(RopodPyre, self).__init__(node_name, groups, message_types,
-                                        verbose=verbose, interface=interface)
+        super(RopodPyre, self).__init__(**zyre_config)
+
+        node_name = zyre_config.get('node_name')
+        ropod_uuid = kwargs.get('ropod_uuid', None)
+        extra_headers = kwargs.get('extra_headers', dict())
 
         self.set_header('name', node_name)
         if ropod_uuid:
@@ -55,6 +53,9 @@ class RopodPyre(PyreBase):
                 self.set_header(key, extra_headers[key])
 
         self.logger.info('Initialized %s', self.name())
+        self.logger.debug("Zyre config: %s", zyre_config)
+        self.logger.debug("Extra headers: %s ", extra_headers)
+        self.logger.debug("Acknowledgements: %s", self.acknowledge)
 
     def receive_msg_cb(self, msg_content):
         pass
@@ -223,7 +224,8 @@ class RopodPyre(PyreBase):
             contents = self.convert_zyre_msg_to_dict(zyre_msg.msg_content)
             header = contents.get('header')
 
-            if not header.get('receiverIds', []) and self.name not in header.get('receiverIds', []):
+            # if receiverIds are specified and this node is not listed there, don't send an acknowledgement
+            if header.get('receiverIds', []) and self.name not in header.get('receiverIds', []):
                 return False
 
             if header.get('type') in self.message_types:
@@ -298,6 +300,10 @@ class RopodPyre(PyreBase):
         This is a ROPOD specific function
         :return:
         """
+
+        if not self.acknowledge:
+            return
+
         dropped_msgs = []
 
         for msg_id, attempt_info in self.unacknowledged_msgs.items():
