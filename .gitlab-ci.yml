@@ -43,7 +43,7 @@ release-stable-image:
     - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
     - docker push $CONTAINER_RELEASE_IMAGE
     - docker tag $CONTAINER_TEST_IMAGE $DOCKERHUB_RELEASE_IMAGE
-    - docker push $DOCKERHUB_CONTAINER_RELEASE_IMAGE
+    - docker push $DOCKERHUB_RELEASE_IMAGE
   only:
     - master
     - tags
@@ -59,6 +59,6 @@ release-latest-image:
     - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
     - docker push $CONTAINER_RELEASE_IMAGE
     - docker tag $CONTAINER_TEST_IMAGE $DOCKERHUB_RELEASE_IMAGE
-    - docker push $DOCKERHUB_CONTAINER_RELEASE_IMAGE
+    - docker push $DOCKERHUB_RELEASE_IMAGE
   only:
     - develop
