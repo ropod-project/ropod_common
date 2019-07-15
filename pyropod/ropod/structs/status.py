@@ -1,4 +1,6 @@
 from ropod.structs.area import Area
+from ropod.utils.datasets import flatten_dict, keep_entry
+
 
 SUCCESS = 0
 FAILED = 1
@@ -41,6 +43,16 @@ class RobotStatus(object):
 
         return status
 
+    @staticmethod
+    def to_csv(status_dict):
+        """ Prepares dict to be written to a csv
+        :return: dict
+        """
+        flattened_dict = flatten_dict(status_dict)
+        to_csv_dict = keep_entry(flattened_dict, 'currentLocation', ['name'])
+
+        return to_csv_dict
+
 
 class TaskStatus(object):
     UNALLOCATED = 1
@@ -74,3 +86,11 @@ class TaskStatus(object):
         status.current_robot_action = status_dict['current_robot_actions']
         status.completed_robot_actions = status_dict['completed_robot_actions']
         return status
+
+    @staticmethod
+    def to_csv(status_dict):
+        """ Prepares dict to be written to a csv
+        :return: dict
+        """
+        # The dictionary is already flat and ready to be exported
+        return status_dict

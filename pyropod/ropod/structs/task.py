@@ -2,6 +2,7 @@ from ropod.utils.uuid import generate_uuid
 from ropod.structs.area import Area
 from ropod.structs.action import Action
 from ropod.structs.status import TaskStatus
+from ropod.utils.datasets import flatten_dict, keep_entry
 
 
 class RobotTask(object):
@@ -54,6 +55,14 @@ class TaskRequest(object):
         request.delivery_pose.floor_number = request_dict["deliveryLocationLevel"]
         request.priority = request_dict["priority"]
         return request
+
+    @staticmethod
+    def to_csv(task_dict):
+        """ Prepares dict to be written to a csv
+        :return: dict
+        """
+        to_csv_dict = flatten_dict(task_dict)
+        return to_csv_dict
 
 
 class Task(object):
@@ -160,6 +169,19 @@ class Task(object):
         return task
 
     @staticmethod
+    def to_csv(task_dict):
+        """ Prepares dict to be written to a csv
+        :return: dict
+        """
+        flattened_dict = flatten_dict(task_dict)
+
+        to_csv_dict = keep_entry(flattened_dict, 'pickup_pose', ['name'])
+        to_csv_dict = keep_entry(to_csv_dict, 'delivery_pose', ['name'])
+        to_csv_dict = keep_entry(to_csv_dict, 'status', ['status'])
+
+        return to_csv_dict
+
+    @staticmethod
     def from_request(request):
         task = Task()
         task.load_type = request.load_type
@@ -196,8 +218,3 @@ class Task(object):
     def update_task_estimated_duration(self, estimated_duration):
         self.estimated_duration = estimated_duration
         self.update_earliest_and_latest_finish_time(estimated_duration)
-
-
-
-
-
