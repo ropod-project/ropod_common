@@ -38,7 +38,7 @@ release-stable-image:
     DOCKERHUB_RELEASE_IMAGE: ropod/ropod_common
   stage: release
   script:
-    - docker login -u "$DOCKERHUB_USER" -p "$DOCKERHUB_PASSWORD"
+    - docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASSWORD
     - docker pull $CONTAINER_TEST_IMAGE
     - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
     - docker push $CONTAINER_RELEASE_IMAGE
@@ -54,7 +54,7 @@ release-latest-image:
     CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
     DOCKERHUB_RELEASE_IMAGE: ropod/ropod_common
   script:
-    - docker login -u "$DOCKERHUB_USER" -p "$DOCKERHUB_PASSWORD"
+    - docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASSWORD
     - docker pull $CONTAINER_TEST_IMAGE
     - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
     - docker push $CONTAINER_RELEASE_IMAGE
