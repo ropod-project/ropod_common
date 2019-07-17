@@ -246,7 +246,7 @@ namespace ftsm
                                 continue;
 
                             this->depend_statuses[monitor_type][depend_comp][monitor_spec] =
-                                bsoncxx::to_json(monitor_data["healthStatus"].get_document().view());
+                                bsoncxx::to_json(monitor_data["healthStatus"].get_document());
 
                             if (this->debug)
                             {

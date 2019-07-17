@@ -104,6 +104,10 @@ namespace ftsm
         }
          */
         std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> depend_statuses;
+
+        typedef std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>::const_iterator MonitorIterator;
+        typedef std::map<std::string, std::map<std::string, std::string>>::const_iterator ComponentIterator;
+        typedef std::map<std::string, std::string>::const_iterator MonitorSpecIterator;
     private:
         std::vector<std::string> getComponentDependencies(std::string component_name);
 
