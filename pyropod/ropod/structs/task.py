@@ -14,7 +14,11 @@ class RobotTask(object):
 
 
 class TaskRequest(object):
-    def __init__(self):
+    def __init__(self, id=''):
+        if not id:
+            self.id = generate_uuid()
+        else:
+            self.id = id
         self.pickup_pose = Area()
         self.delivery_pose = Area()
         self.earliest_start_time = -1.
@@ -26,6 +30,7 @@ class TaskRequest(object):
 
     def to_dict(self):
         request_dict = dict()
+        request_dict['id'] = self.id
         request_dict['pickup_pose'] = self.pickup_pose.to_dict()
         request_dict['delivery_pose'] = self.delivery_pose.to_dict()
         request_dict['earliest_start_time'] = self.earliest_start_time
@@ -40,6 +45,7 @@ class TaskRequest(object):
     def from_dict(request_dict):
 
         request = TaskRequest()
+        request.id = request_dict["id"]
         request.load_type = request_dict["loadType"]
         request.load_id = request_dict["loadId"]
         request.user_id = request_dict["userId"]
@@ -73,7 +79,7 @@ class Task(object):
 
     def __init__(self, id='', robot_actions=dict(), loadType='', loadId='', team_robot_ids=list(),
                  earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1, start_time=-1, finish_time=-1, pickup_pose=Area(), delivery_pose=Area(),
-                 status=TaskStatus(), priority=NORMAL, pickup_start_time=-1):
+                 status=TaskStatus(), priority=NORMAL, pickup_start_time=-1, hard_constraints=True):
 
         if not id:
             self.id = generate_uuid()
@@ -91,6 +97,7 @@ class Task(object):
         self.start_time = start_time
         self.finish_time = finish_time
         self.pickup_start_time = pickup_start_time
+        self.hard_constraints = hard_constraints
 
         if isinstance(pickup_pose, Area):
             self.pickup_pose = pickup_pose
@@ -121,7 +128,7 @@ class Task(object):
         task_dict['id'] = self.id
         task_dict['loadType'] = self.loadType
         task_dict['loadId'] = self.loadId
-        task_dict['team_robot_ids'] = self.team_robot_ids
+        task_dict['team_robot_ids'] = list(self.team_robot_ids)
         task_dict['earliest_start_time'] = self.earliest_start_time
         task_dict['latest_start_time'] = self.latest_start_time
         task_dict['estimated_duration'] = self.estimated_duration
@@ -134,6 +141,7 @@ class Task(object):
         task_dict['priority'] = self.priority
         task_dict['status'] = self.status.to_dict()
         task_dict['pickup_start_time'] = self.pickup_start_time
+        task_dict['hard_constraints'] = self.hard_constraints
         task_dict['robot_actions'] = dict()
         for robot_id, actions in self.robot_actions.items():
             task_dict['robot_actions'][robot_id] = list()
@@ -161,6 +169,7 @@ class Task(object):
         task.priority = task_dict['priority']
         task.status = TaskStatus.from_dict(task_dict['status'])
         task.pickup_start_time = task_dict['pickup_start_time']
+        task.hard_constraints = task_dict['hard_constraints']
         for robot_id, actions in task_dict['robot_actions'].items():
             task.robot_actions[robot_id] = list()
             for action_dict in actions:

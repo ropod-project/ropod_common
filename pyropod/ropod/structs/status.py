@@ -73,8 +73,8 @@ class TaskStatus(object):
         task_dict['task_id'] = self.task_id
         task_dict['status'] = self.status
         task_dict['estimated_task_duration'] = self.estimated_task_duration
-        task_dict['current_robot_actions'] = self.current_robot_action
-        task_dict['completed_robot_actions'] = self.completed_robot_actions
+        task_dict['current_robot_actions'] = dict(self.current_robot_action)
+        task_dict['completed_robot_actions'] = dict(self.completed_robot_actions)
         return task_dict
 
     @staticmethod
