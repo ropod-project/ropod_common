@@ -45,21 +45,15 @@ class TaskRequest(object):
     def from_dict(request_dict):
 
         request = TaskRequest()
-        request.id = request_dict["id"]
-        request.load_type = request_dict["loadType"]
-        request.load_id = request_dict["loadId"]
-        request.user_id = request_dict["userId"]
-        request.earliest_start_time = request_dict["earliestStartTime"]
-        request.latest_start_time = request_dict["latestStartTime"]
-
-        request.pickup_pose = Area()
-        request.pickup_pose.name = request_dict["pickupLocation"]
-        request.pickup_pose.floor_number = request_dict["pickupLocationLevel"]
-
-        request.delivery_pose = Area()
-        request.delivery_pose.name = request_dict["deliveryLocation"]
-        request.delivery_pose.floor_number = request_dict["deliveryLocationLevel"]
-        request.priority = request_dict["priority"]
+        request.id = request_dict['id']
+        request.load_type = request_dict['load_type']
+        request.load_id = request_dict['load_id']
+        request.user_id = request_dict['user_id']
+        request.earliest_start_time = request_dict['earliest_start_time']
+        request.latest_start_time = request_dict['latest_start_time']
+        request.pickup_pose = Area.from_dict(request_dict['pickup_pose'])
+        request.delivera_pose = Area.from_dict(request_dict['delivery_pose'])
+        request.priority = request_dict['priority']
         return request
 
     @staticmethod
