@@ -231,3 +231,11 @@ class Task(object):
     def update_task_estimated_duration(self, estimated_duration):
         self.estimated_duration = estimated_duration
         self.update_earliest_and_latest_finish_time(estimated_duration)
+
+    @property
+    def start_pose_name(self):
+        return self.pickup_pose.name
+
+    @property
+    def finish_pose_name(self):
+        return self.delivery_pose.name
