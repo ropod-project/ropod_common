@@ -3,6 +3,7 @@ from ropod.structs.area import Area
 from ropod.structs.action import Action
 from ropod.structs.status import TaskStatus
 from ropod.utils.datasets import flatten_dict, keep_entry
+import copy
 
 
 class RobotTask(object):
@@ -140,7 +141,7 @@ class Task(object):
         task_dict['id'] = self.id
         task_dict['loadType'] = self.loadType
         task_dict['loadId'] = self.loadId
-        task_dict['team_robot_ids'] = list(self.team_robot_ids)
+        task_dict['team_robot_ids'] = copy.copy(self.team_robot_ids)
         task_dict['earliest_start_time'] = self.earliest_start_time
         task_dict['latest_start_time'] = self.latest_start_time
         task_dict['estimated_duration'] = self.estimated_duration
