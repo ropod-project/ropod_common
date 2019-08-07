@@ -3,6 +3,7 @@ from ropod.structs.area import Area
 from ropod.structs.action import Action
 from ropod.structs.status import TaskStatus
 from ropod.utils.datasets import flatten_dict, keep_entry
+import copy
 
 
 class RobotTask(object):
@@ -14,7 +15,11 @@ class RobotTask(object):
 
 
 class TaskRequest(object):
-    def __init__(self):
+    def __init__(self, id=''):
+        if not id:
+            self.id = generate_uuid()
+        else:
+            self.id = id
         self.pickup_pose = Area()
         self.delivery_pose = Area()
         self.earliest_start_time = -1.
@@ -26,20 +31,25 @@ class TaskRequest(object):
 
     def to_dict(self):
         request_dict = dict()
-        request_dict['pickup_pose'] = self.pickup_pose.to_dict()
-        request_dict['delivery_pose'] = self.delivery_pose.to_dict()
-        request_dict['earliest_start_time'] = self.earliest_start_time
-        request_dict['latest_start_time'] = self.latest_start_time
-        request_dict['user_id'] = self.user_id
-        request_dict['load_type'] = self.load_type
-        request_dict['load_id'] = self.load_id
+        request_dict['id'] = self.id
+        request_dict['pickupLocation'] = self.pickup_pose.name
+        request_dict['pickupLocationLevel'] = self.pickup_pose.floor_number
+        request_dict['deliveryLocation'] = self.delivery_pose.name
+        request_dict['deliveryLocationLevel'] = self.delivery_pose.floor_number
+        request_dict['earliestStartTime'] = self.earliest_start_time
+        request_dict['latestStartTime'] = self.latest_start_time
+        request_dict['userId'] = self.user_id
+        request_dict['loadType'] = self.load_type
+        request_dict['loadId'] = self.load_id
         request_dict['priority'] = self.priority
         return request_dict
 
     @staticmethod
     def from_dict(request_dict):
 
-        request = TaskRequest()
+        id = request_dict.get('id', generate_uuid())
+        request = TaskRequest(id=id)
+
         request.load_type = request_dict["loadType"]
         request.load_id = request_dict["loadId"]
         request.user_id = request_dict["userId"]
@@ -54,6 +64,7 @@ class TaskRequest(object):
         request.delivery_pose.name = request_dict["deliveryLocation"]
         request.delivery_pose.floor_number = request_dict["deliveryLocationLevel"]
         request.priority = request_dict["priority"]
+
         return request
 
     @staticmethod
@@ -66,6 +77,14 @@ class TaskRequest(object):
 
 
 class Task(object):
+    """
+    Parameters for task allocation:
+    earliest_start_time: seconds (float)
+    latest_start_time: seconds (float)
+    start_pose_name: String indicating the location in the map where the task should start (taken from pickup_pose.name)
+    finish_pose_name: String indicating the location in the map where the task should finish (taken from delivery_pose.name)
+    """
+
     EMERGENCY = 0
     HIGH = 1
     NORMAL = 2
@@ -73,7 +92,7 @@ class Task(object):
 
     def __init__(self, id='', robot_actions=dict(), loadType='', loadId='', team_robot_ids=list(),
                  earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1, start_time=-1, finish_time=-1, pickup_pose=Area(), delivery_pose=Area(),
-                 status=TaskStatus(), priority=NORMAL, pickup_start_time=-1):
+                 status=TaskStatus(), priority=NORMAL, pickup_start_time=-1, hard_constraints=True):
 
         if not id:
             self.id = generate_uuid()
@@ -91,6 +110,7 @@ class Task(object):
         self.start_time = start_time
         self.finish_time = finish_time
         self.pickup_start_time = pickup_start_time
+        self.hard_constraints = hard_constraints
 
         if isinstance(pickup_pose, Area):
             self.pickup_pose = pickup_pose
@@ -121,7 +141,7 @@ class Task(object):
         task_dict['id'] = self.id
         task_dict['loadType'] = self.loadType
         task_dict['loadId'] = self.loadId
-        task_dict['team_robot_ids'] = self.team_robot_ids
+        task_dict['team_robot_ids'] = copy.copy(self.team_robot_ids)
         task_dict['earliest_start_time'] = self.earliest_start_time
         task_dict['latest_start_time'] = self.latest_start_time
         task_dict['estimated_duration'] = self.estimated_duration
@@ -134,6 +154,7 @@ class Task(object):
         task_dict['priority'] = self.priority
         task_dict['status'] = self.status.to_dict()
         task_dict['pickup_start_time'] = self.pickup_start_time
+        task_dict['hard_constraints'] = self.hard_constraints
         task_dict['robot_actions'] = dict()
         for robot_id, actions in self.robot_actions.items():
             task_dict['robot_actions'][robot_id] = list()
@@ -161,6 +182,7 @@ class Task(object):
         task.priority = task_dict['priority']
         task.status = TaskStatus.from_dict(task_dict['status'])
         task.pickup_start_time = task_dict['pickup_start_time']
+        task.hard_constraints = task_dict['hard_constraints']
         for robot_id, actions in task_dict['robot_actions'].items():
             task.robot_actions[robot_id] = list()
             for action_dict in actions:
@@ -193,28 +215,51 @@ class Task(object):
         task.priority = request.priority
         task.status.status = "unallocated" # TODO This should be standardized
         task.status.task_id = task.id
-        task.team_robot_ids = None
+        task.team_robot_ids = list()
 
         return task
 
-    ''' Updates the earliest and latest finish time of a task based on its estimated duration
-    @param estimated duration: seconds (float)
-    '''
     def update_earliest_and_latest_finish_time(self, estimated_duration):
+        """ Updates the earliest and latest finish time of a task based on its estimated duration
+        @param estimated duration: seconds (float)
+        """
         self.earliest_finish_time = self.earliest_start_time + estimated_duration
         self.latest_finish_time = self.latest_start_time + estimated_duration
 
-    '''@param time: seconds (float)
-    '''
     def postpone_task(self, time):
+        """ Postpones the task the time indicated in the time
+        @param time: seconds (float)
+        """
         self.earliest_start_time += time
         self.latest_start_time += time
         self.earliest_finish_time = self.earliest_start_time + self.estimated_duration
         self.latest_finish_time = self.latest_start_time + self.estimated_duration
 
-    ''' Updates the estimated duration and the earliest and latest finish times
-    @param estimated duration: seconds (float)
-    '''
     def update_task_estimated_duration(self, estimated_duration):
+        """ Updates the estimated duration and the earliest and latest finish times
+        @param estimated duration: seconds (float)
+        """
         self.estimated_duration = estimated_duration
         self.update_earliest_and_latest_finish_time(estimated_duration)
+
+    @property
+    def start_pose_name(self):
+        """ Returns the start_pose_name, used by the task allocator component
+
+        The task_allocation component is expecting the task struct to have a
+        start_pose_name
+        This function maps self.pickup_pose.name to start_pose_name and returns
+        its value
+        """
+        return self.pickup_pose.name
+
+    @property
+    def finish_pose_name(self):
+        """ Returns the finish_pose_name, used by the task allocator component
+
+       The task_allocation component is expecting the task struct to have a
+       finish_pose_name
+       This function maps self.delivery_pose.name to finish_pose_name and returns
+       its value
+        """
+        return self.delivery_pose.name
