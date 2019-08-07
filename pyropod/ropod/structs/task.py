@@ -46,7 +46,7 @@ class TaskRequest(object):
     @staticmethod
     def from_dict(request_dict):
 
-        id = request_dict.get('id', '')
+        id = request_dict.get('id', generate_uuid())
         request = TaskRequest(id=id)
 
         request.load_type = request_dict["loadType"]
@@ -76,6 +76,14 @@ class TaskRequest(object):
 
 
 class Task(object):
+    """
+    Parameters for task allocation:
+    earliest_start_time: seconds (float)
+    latest_start_time: seconds (float)
+    start_pose_name: String indicating the location in the map where the task should start (taken from pickup_pose.name)
+    finish_pose_name: String indicating the location in the map where the task should finish (taken from delivery_pose.name)
+    """
+
     EMERGENCY = 0
     HIGH = 1
     NORMAL = 2
@@ -210,32 +218,47 @@ class Task(object):
 
         return task
 
-    ''' Updates the earliest and latest finish time of a task based on its estimated duration
-    @param estimated duration: seconds (float)
-    '''
     def update_earliest_and_latest_finish_time(self, estimated_duration):
+        """ Updates the earliest and latest finish time of a task based on its estimated duration
+        @param estimated duration: seconds (float)
+        """
         self.earliest_finish_time = self.earliest_start_time + estimated_duration
         self.latest_finish_time = self.latest_start_time + estimated_duration
 
-    '''@param time: seconds (float)
-    '''
     def postpone_task(self, time):
+        """ Postpones the task the time indicated in the time
+        @param time: seconds (float)
+        """
         self.earliest_start_time += time
         self.latest_start_time += time
         self.earliest_finish_time = self.earliest_start_time + self.estimated_duration
         self.latest_finish_time = self.latest_start_time + self.estimated_duration
 
-    ''' Updates the estimated duration and the earliest and latest finish times
-    @param estimated duration: seconds (float)
-    '''
     def update_task_estimated_duration(self, estimated_duration):
+        """ Updates the estimated duration and the earliest and latest finish times
+        @param estimated duration: seconds (float)
+        """
         self.estimated_duration = estimated_duration
         self.update_earliest_and_latest_finish_time(estimated_duration)
 
     @property
     def start_pose_name(self):
+        """ Returns the start_pose_name, used by the task allocator component
+
+        The task_allocation component is expecting the task struct to have a
+        start_pose_name
+        This function maps self.pickup_pose.name to start_pose_name and returns
+        its value
+        """
         return self.pickup_pose.name
 
     @property
     def finish_pose_name(self):
+        """ Returns the finish_pose_name, used by the task allocator component
+
+       The task_allocation component is expecting the task struct to have a
+       finish_pose_name
+       This function maps self.delivery_pose.name to finish_pose_name and returns
+       its value
+        """
         return self.delivery_pose.name
