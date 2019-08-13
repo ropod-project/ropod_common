@@ -212,8 +212,7 @@ class Task(object):
         task.pickup_pose = request.pickup_pose
         task.delivery_pose = request.delivery_pose
         task.priority = request.priority
-        task.status.status = "unallocated" # TODO This should be standardized
-        task.status.task_id = task.id
+        task.status = TaskStatus(task.id)
         task.team_robot_ids = list()
 
         return task
