@@ -41,6 +41,7 @@ namespace ftsm
                        std::string robot_store_db_name, int robot_store_db_port,
                        std::string robot_store_component_collection,
                        std::string robot_store_status_collection,
+                       std::string robot_store_sm_state_collection,
                        bool debug)
      : FTSM(name, dependencies, max_recovery_attempts), connection_{mongocxx::uri{}}
     {
@@ -49,6 +50,7 @@ namespace ftsm
         this->robot_store_db_port = robot_store_db_port;
         this->robot_store_component_collection = robot_store_component_collection;
         this->robot_store_status_collection = robot_store_status_collection;
+        this->robot_store_sm_state_collection = robot_store_sm_state_collection;
         this->debug = debug;
 
         auto spec_dependencies = this->getComponentDependencies(name);
@@ -84,6 +86,7 @@ namespace ftsm
         }
 
         this->depend_status_thread = std::thread(&FTSMBase::getDependencyStatuses, this);
+        this->sm_state_thread = std::thread(&FTSMBase::writeSMState, this);
     }
 
     std::string FTSMBase::init()
@@ -204,7 +207,7 @@ namespace ftsm
         return dependency_monitors;
     }
 
-    std::map<std::string, std::string> FTSMBase::getDependencyStatuses()
+    void FTSMBase::getDependencyStatuses()
     {
         while (!this->is_running)
         {
@@ -237,6 +240,10 @@ namespace ftsm
                         auto status_doc = collection.find_one(bsoncxx::builder::stream::document{}
                                                               << "id" << component_name
                                                               << bsoncxx::builder::stream::finalize);
+
+                        // we ignore the component if there is no status document for it
+                        if (!status_doc) continue;
+
                         auto document_view = (*status_doc).view();
 
                         for (auto monitor_data : document_view["monitor_status"].get_array().value)
@@ -256,6 +263,34 @@ namespace ftsm
                         }
                     }
                 }
+            }
+            catch (std::exception& e)
+            {
+                std::cout << e.what() << std::endl;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+    }
+
+    void FTSMBase::writeSMState()
+    {
+        while (this->current_state != FTSMStates::STOPPED)
+        {
+            try
+            {
+                auto collection = connection_[this->robot_store_db_name]
+                                             [this->robot_store_sm_state_collection];
+
+                auto status_doc = collection.find_one(bsoncxx::builder::stream::document{}
+                                                      << "component_name" << this->name
+                                                      << bsoncxx::builder::stream::finalize);
+                if (!status_doc) continue;
+
+                collection.replace_one((*status_doc).view(),
+                                       bsoncxx::builder::stream::document{}
+                                       << "component_name" << this->name
+                                       << "state" << this->current_state
+                                       << bsoncxx::builder::stream::finalize);
             }
             catch (std::exception& e)
             {
