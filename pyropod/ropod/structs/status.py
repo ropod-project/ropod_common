@@ -1,7 +1,7 @@
-from ropod.structs.area import Area
-from ropod.utils.datasets import flatten_dict, keep_entry
 import copy
 
+from ropod.structs.area import Area
+from ropod.utils.datasets import flatten_dict, keep_entry
 
 SUCCESS = 0
 FAILED = 1
@@ -61,10 +61,12 @@ class TaskStatus(object):
     ONGOING = 3
     COMPLETED = 4
     TERMINATED = 5
+    READY = 6
+    SCHEDULED = 7
 
-    def __init__(self):
-        self.task_id = ''
-        self.status = ''
+    def __init__(self, task_id):
+        self.task_id = task_id
+        self.status = UNALLOCATED
         self.current_robot_action = dict()
         self.completed_robot_actions = dict()
         self.estimated_task_duration = -1.
@@ -80,8 +82,7 @@ class TaskStatus(object):
 
     @staticmethod
     def from_dict(status_dict):
-        status = TaskStatus()
-        status.task_id = status_dict['task_id']
+        status = TaskStatus(status_dict['task_id'])
         status.status = status_dict['status']
         status.estimated_task_duration = status_dict['estimated_task_duration']
         status.current_robot_action = status_dict['current_robot_actions']
@@ -95,3 +96,6 @@ class TaskStatus(object):
         """
         # The dictionary is already flat and ready to be exported
         return status_dict
+
+    def set_current_robot_action(self, robot_id, action):
+        self.current_robot_action[robot_id] = action

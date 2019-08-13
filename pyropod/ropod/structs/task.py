@@ -1,9 +1,11 @@
-from ropod.utils.uuid import generate_uuid
-from ropod.structs.area import Area
+import copy
+
 from ropod.structs.action import Action
+from ropod.structs.area import Area
 from ropod.structs.status import TaskStatus
 from ropod.utils.datasets import flatten_dict, keep_entry
-import copy
+from ropod.utils.uuid import generate_uuid
+from ropod.utils.timestamp import TimeStamp
 
 
 class RobotTask(object):
@@ -92,7 +94,7 @@ class Task(object):
 
     def __init__(self, id='', robot_actions=dict(), loadType='', loadId='', team_robot_ids=list(),
                  earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1, start_time=-1, finish_time=-1, pickup_pose=Area(), delivery_pose=Area(),
-                 status=TaskStatus(), priority=NORMAL, pickup_start_time=-1, hard_constraints=True):
+                 priority=NORMAL, pickup_start_time=-1, hard_constraints=True):
 
         if not id:
             self.id = generate_uuid()
@@ -122,10 +124,7 @@ class Task(object):
         else:
             raise Exception('delivery_pose must be an object of type Area')
 
-        if isinstance(status, TaskStatus):
-            self.status = status
-        else:
-            raise Exception("status must be an object of TaskStatus type")
+        self.status = TaskStatus(self.id)
 
         if priority in (self.EMERGENCY, self.NORMAL, self.HIGH, self.LOW):
             self.priority = priority
@@ -263,3 +262,25 @@ class Task(object):
        its value
         """
         return self.delivery_pose.name
+
+    def set_status(self, status, **kwargs):
+        self.status.status = status
+        if status == TaskStatus.ONGOING:
+            task = kwargs.get('task')
+            self.status.estimated_task_duration = task.estimated_duration
+            # TODO It may be better to wait for the robot to send it's current action
+            # instead of setting it
+            for robot_id in task.team_robot_ids:
+                action = self.robot_actions[robot_id][0].id
+                self.status.set_current_robot_action(robot_id, action)
+                self.status.completed_robot_actions[robot_id] = list()
+
+    def is_executable(self):
+        """Returns True if the given task needs to be dispatched based on
+         the task schedule; returns False otherwise
+        """
+        current_time = TimeStamp.get_time_stamp()
+        if self.start_time < current_time:
+            return True
+        else:
+            return False
