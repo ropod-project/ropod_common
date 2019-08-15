@@ -1,3 +1,6 @@
+import inflection
+
+
 class ElevatorRequests(object):
     def __init__(self):
         self.current_floor = -1
@@ -5,20 +8,29 @@ class ElevatorRequests(object):
 
 
 class ElevatorRequest(object):
-    def __init__(self, start_floor, goal_floor, command, elevator_id=1, mode='ROBOT', query_id=None,
-                 task_id=None, load=None, robot_id=None, status='pending'):
-        self.elevator_id = elevator_id
-        self.operational_mode = mode
+    PENDING = 0
+    ACCEPTED = 8
+    GOING_TO_START = 1
+    WAITING_FOR_ROBOT_IN = 2
+    GOING_TO_GOAL = 3
+    WAITING_FOR_ROBOT_OUT = 4
+    COMPLETED = 5
+    CANCELED = 6
+    FAILED = 7
 
-        self.start_floor = start_floor
-        self.goal_floor = goal_floor
-        self.command = command
+    def __init__(self, query_id, start_floor, goal_floor, command, elevator_id=1, **kwargs):
 
         self.query_id = query_id
-        self.task_id = task_id
-        self.load = load
-        self.robot_id = robot_id
-        self.status = status
+        self.command = command
+        self.elevator_id = elevator_id
+        self.start_floor = start_floor
+        self.goal_floor = goal_floor
+        self.operational_mode = kwargs.get('mode', 'ROBOT')
+
+        self.task_id = kwargs.get('task_id', None)
+        self.load = kwargs.get('load', None)
+        self.robot_id = kwargs.get('robot_id', None)
+        self.status = ElevatorRequest.PENDING
 
     def to_dict(self):
         request_dict = dict()
@@ -36,20 +48,29 @@ class ElevatorRequest(object):
 
     @staticmethod
     def from_dict(request):
-        robot_request = ElevatorRequest()
+        query_id = request['queryId']
+        command = request['command']
+        start_floor = request['startFloor']
+        goal_floor = request['goalFloor']
+        elevator_id = request.get('elevatorId')
 
-        robot_request.query_id = request['query_id']
-        robot_request.command = request['command']
-        robot_request.start_floor = request['startFloor']
-        robot_request.goal_floor = request['goalFloor']
-        robot_request.task_id = request['taskId']
-        robot_request.load = request['load']
-        robot_request.robot_id = request['robotId']
-        robot_request.status = request['status']
+        robot_request = ElevatorRequest(query_id, start_floor, goal_floor, command, elevator_id)
+
+        robot_request.task_id = request.get('taskId')
+        robot_request.load = request.get('load')
+        robot_request.robot_id = request.get('robotId')
+        robot_request.status = request.get('status', ElevatorRequest.PENDING)
         return robot_request
+
+    def __str__(self):
+        return "ElevatorRequest(query_id=%s, command=%s, start_floor=%s, goal_floor=%s, elevator_id=%s, task_id=%s, " \
+               "load=%s, robot_id=%s, status=%s)" % (self.query_id, self.command, self.start_floor, self.goal_floor,
+                                                     self.elevator_id, self.task_id, self.load, self.robot_id,
+                                                     self.status)
 
 
 class Elevator(object):
+
     def __init__(self, elevator_id):
         self.elevator_id = elevator_id
         self.floor = -1 # TODO: Need to match floors from toma messages to world model ones
@@ -78,6 +99,24 @@ class Elevator(object):
         elevator.door_open_at_goal_floor = elevator_dict['doorOpenAtGoalFloor']
         elevator.door_open_at_start_floor = elevator_dict['doorOpenAtStartFloor']
         return elevator
+
+    def update(self, status):
+        for k, v in status.items():
+            if k != 'metamodel':
+                key = inflection.underscore(k)
+                self.__dict__[key] = v
+
+    def at_goal_floor(self):
+        if self.door_open_at_goal_floor:
+            return True
+        else:
+            return False
+
+    def at_start_floor(self):
+        if self.door_open_at_start_floor:
+            return True
+        else:
+            return False
 
 
 class RobotCallUpdate(object):
