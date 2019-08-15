@@ -18,14 +18,14 @@ stages:
 before_script:
   - docker info
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN git.ropod.org:4567
-  - echo $CONTAINER_TEST_IMAGE
 
 build:
   stage: build
   script:
     - docker build --pull -t $CONTAINER_TEST_IMAGE .
     - docker push $CONTAINER_TEST_IMAGE
-
+    - docker build --pull -t "$CI_REGISTRY_IMAGE" .
+    - docker push "$CI_REGISTRY_IMAGE"
 test:
   stage: test
   script:
@@ -35,11 +35,15 @@ test:
 release-stable-image:
   variables:
     CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:stable
+    DOCKERHUB_RELEASE_IMAGE: ropod/ropod_common
   stage: release
   script:
+    - docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASSWORD
     - docker pull $CONTAINER_TEST_IMAGE
     - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
     - docker push $CONTAINER_RELEASE_IMAGE
+    - docker tag $CONTAINER_TEST_IMAGE $DOCKERHUB_RELEASE_IMAGE
+    - docker push $DOCKERHUB_RELEASE_IMAGE
   only:
     - master
     - tags
@@ -48,9 +52,13 @@ release-latest-image:
   stage: release
   variables:
     CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
+    DOCKERHUB_RELEASE_IMAGE: ropod/ropod_common
   script:
-  - docker pull $CONTAINER_TEST_IMAGE
-  - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
-  - docker push $CONTAINER_RELEASE_IMAGE
+    - docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASSWORD
+    - docker pull $CONTAINER_TEST_IMAGE
+    - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
+    - docker push $CONTAINER_RELEASE_IMAGE
+    - docker tag $CONTAINER_TEST_IMAGE $DOCKERHUB_RELEASE_IMAGE
+    - docker push $DOCKERHUB_RELEASE_IMAGE
   only:
-  - develop
+    - develop

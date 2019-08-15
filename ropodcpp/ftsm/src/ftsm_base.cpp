@@ -33,12 +33,15 @@ namespace ftsm
     std::string DependMonitorTypes::HEARTBEAT = "heartbeat";
     std::string DependMonitorTypes::FUNCTIONAL = "functional";
 
+    std::string MonitorConstants::NONE = "none";
+
     FTSMBase::FTSMBase(const std::string &name, const std::vector<std::string> &dependencies,
                        const std::map<std::string, std::map<std::string, std::string>> &dependency_monitors,
                        int max_recovery_attempts,
                        std::string robot_store_db_name, int robot_store_db_port,
                        std::string robot_store_component_collection,
                        std::string robot_store_status_collection,
+                       std::string robot_store_sm_state_collection,
                        bool debug)
      : FTSM(name, dependencies, max_recovery_attempts), connection_{mongocxx::uri{}}
     {
@@ -47,6 +50,7 @@ namespace ftsm
         this->robot_store_db_port = robot_store_db_port;
         this->robot_store_component_collection = robot_store_component_collection;
         this->robot_store_status_collection = robot_store_status_collection;
+        this->robot_store_sm_state_collection = robot_store_sm_state_collection;
         this->debug = debug;
 
         auto spec_dependencies = this->getComponentDependencies(name);
@@ -82,6 +86,7 @@ namespace ftsm
         }
 
         this->depend_status_thread = std::thread(&FTSMBase::getDependencyStatuses, this);
+        this->sm_state_thread = std::thread(&FTSMBase::writeSMState, this);
     }
 
     std::string FTSMBase::init()
@@ -97,6 +102,24 @@ namespace ftsm
     std::string FTSMBase::ready()
     {
         return ftsm::FTSMTransitions::RUN;
+    }
+
+    std::string FTSMBase::processDependStatuses()
+    {
+        return "";
+    }
+
+    Json::Value FTSMBase::convertStringToJson(const std::string &msg)
+    {
+        std::stringstream msg_stream;
+        msg_stream << msg;
+
+        Json::Value root;
+        Json::CharReaderBuilder reader_builder;
+        std::string errors;
+        // TODO: handle exceptions
+        bool ok = Json::parseFromStream(reader_builder, msg_stream, &root, &errors);
+        return root;
     }
 
     std::vector<std::string> FTSMBase::getComponentDependencies(std::string component_name)
@@ -184,7 +207,7 @@ namespace ftsm
         return dependency_monitors;
     }
 
-    std::map<std::string, std::string> FTSMBase::getDependencyStatuses()
+    void FTSMBase::getDependencyStatuses()
     {
         while (!this->is_running)
         {
@@ -207,6 +230,8 @@ namespace ftsm
                     {
                         std::string depend_comp = monitor_desc.first;
                         std::string monitor_spec = monitor_desc.second;
+                        if (monitor_spec == MonitorConstants::NONE)
+                            continue;
 
                         int separator_idx = monitor_spec.find("/");
                         std::string component_name = monitor_spec.substr(0, separator_idx);
@@ -215,6 +240,10 @@ namespace ftsm
                         auto status_doc = collection.find_one(bsoncxx::builder::stream::document{}
                                                               << "id" << component_name
                                                               << bsoncxx::builder::stream::finalize);
+
+                        // we ignore the component if there is no status document for it
+                        if (!status_doc) continue;
+
                         auto document_view = (*status_doc).view();
 
                         for (auto monitor_data : document_view["monitor_status"].get_array().value)
@@ -224,7 +253,7 @@ namespace ftsm
                                 continue;
 
                             this->depend_statuses[monitor_type][depend_comp][monitor_spec] =
-                                bsoncxx::to_json(monitor_data["healthStatus"].get_document().view());
+                                bsoncxx::to_json(monitor_data["healthStatus"].get_document());
 
                             if (this->debug)
                             {
@@ -234,6 +263,34 @@ namespace ftsm
                         }
                     }
                 }
+            }
+            catch (std::exception& e)
+            {
+                std::cout << e.what() << std::endl;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+    }
+
+    void FTSMBase::writeSMState()
+    {
+        while (this->current_state != FTSMStates::STOPPED)
+        {
+            try
+            {
+                auto collection = connection_[this->robot_store_db_name]
+                                             [this->robot_store_sm_state_collection];
+
+                auto status_doc = collection.find_one(bsoncxx::builder::stream::document{}
+                                                      << "component_name" << this->name
+                                                      << bsoncxx::builder::stream::finalize);
+                if (!status_doc) continue;
+
+                collection.replace_one((*status_doc).view(),
+                                       bsoncxx::builder::stream::document{}
+                                       << "component_name" << this->name
+                                       << "state" << this->current_state
+                                       << bsoncxx::builder::stream::finalize);
             }
             catch (std::exception& e)
             {

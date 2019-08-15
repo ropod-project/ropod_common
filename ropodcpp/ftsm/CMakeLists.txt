@@ -4,12 +4,14 @@ find_package(PkgConfig)
 include(FindPkgConfig)
 pkg_check_modules(LIBMONGOCXX REQUIRED libmongocxx)
 pkg_check_modules(LIBBSONCXX REQUIRED libbsoncxx)
+pkg_check_modules(JSONCPP jsoncpp)
 
 include_directories(
   /opt/ropod/ftsm/cppftsm/include
   /opt/ropod/ropod_common/ropodcpp/ftsm/include
   ${LIBMONGOCXX_INCLUDE_DIRS}
   ${LIBBSONCXX_INCLUDE_DIRS}
+  ${JSONCPP_INCLUDE_DIRS}
 )
 
 link_directories(
@@ -20,4 +22,5 @@ link_directories(
 set(FTSM_LIBRARIES
   ${LIBMONGOCXX_LIBRARIES}
   ${LIBBSONCXX_LIBRARIES}
+  ${JSONCPP_LIBRARIES}
 )

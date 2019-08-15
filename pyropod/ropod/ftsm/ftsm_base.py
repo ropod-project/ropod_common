@@ -8,6 +8,9 @@ class DependMonitorTypes(object):
     HEARTBEAT = 'heartbeat'
     FUNCTIONAL = 'functional'
 
+class MonitorConstants(object):
+    NONE = 'none'
+
 class FTSMBase(FTSM):
     '''ROPOD-specific implementation of a fault-tolerant state machine.
 
@@ -21,7 +24,8 @@ class FTSMBase(FTSM):
                  robot_store_db_name='robot_store',
                  robot_store_db_port=27017,
                  robot_store_component_collection='components',
-                 robot_store_status_collection='status'):
+                 robot_store_status_collection='status',
+                 robot_store_sm_state_collection='component_sm_states'):
         if not dependencies:
             dependencies = []
 
@@ -35,6 +39,7 @@ class FTSMBase(FTSM):
         self.db_port = robot_store_db_port
         self.component_collection_name = robot_store_component_collection
         self.status_collection_name = robot_store_status_collection
+        self.sm_state_collection_name = robot_store_sm_state_collection
 
         # we check whether the dependencies match the dependencies in the specification
         # and raise an AssertionError if they don't
@@ -56,6 +61,10 @@ class FTSMBase(FTSM):
         self.depend_status_thread = threading.Thread(target=self.get_dependency_statuses)
         self.depend_status_thread.daemon = True
         self.depend_status_thread.start()
+
+        self.sm_state_thread = threading.Thread(target=self.write_sm_state)
+        self.sm_state_thread.daemon = True
+        self.sm_state_thread.start()
 
     def init(self):
         '''Method for component initialisation; returns FTSMTransitions.INITIALISED by default
@@ -138,6 +147,9 @@ class FTSMBase(FTSM):
                         self.depend_statuses[monitor_type] = {}
 
                     for depend_comp, monitor_specs in monitors.items():
+                        if monitor_specs == MonitorConstants.NONE:
+                            continue
+
                         if depend_comp not in self.depend_statuses[monitor_type]:
                             self.depend_statuses[monitor_type][depend_comp] = {}
 
@@ -151,7 +163,18 @@ class FTSMBase(FTSM):
                                 monitor_data['healthStatus']
                 time.sleep(0.5)
             except pm.errors.OperationFailure as exc:
-                print('[ftms_base] {0}'.format(exc))
+                print('[ftms_base, get_dependency_statuses] {0}'.format(exc))
+
+    def write_sm_state(self):
+        while self.current_state != FTSMStates.STOPPED:
+            try:
+                collection = self.__get_collection(self.sm_state_collection_name)
+                collection.replace_one({'component_name': self.name},
+                                       {'component_name': self.name,
+                                        'state': self.current_state},
+                                       upsert=True)
+            except pm.errors.OperationFailure as exc:
+                print('[ftms_base, write_sm_state] {0}'.format(exc))
 
     def __get_component_dependencies(self, component_name):
         '''Returns a list of components that the given component is dependent on,
