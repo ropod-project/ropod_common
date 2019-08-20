@@ -4,47 +4,8 @@ from ropod.structs.area import Area
 from ropod.utils.datasets import flatten_dict, keep_entry
 
 
-class RobotStatus(object):
-    def __init__(self):
-        self.robot_id = ''
-        self.current_location = Area()
-        self.current_operation = ''
-        self.status = ''
-        self.available = False
-        self.battery_status = -1.
 
-    def to_dict(self):
-        status_dict = dict()
-        status_dict['robotId'] = self.robot_id
-        status_dict['currentOperation'] = self.current_operation
-        status_dict['currentLocation'] = self.current_location.to_dict()
-        status_dict['status'] = self.status
-        status_dict['available'] = self.available
-        status_dict['batteryStatus'] = self.battery_status
 
-        return status_dict
-
-    @staticmethod
-    def from_dict(status_dict):
-        status = RobotStatus()
-        status.robot_id = status_dict['robotId']
-        status.current_operation = status_dict['currentOperation']
-        status.current_location = Area.from_dict(status_dict['currentLocation'])
-        status.status = status_dict['status']
-        status.available = status_dict['available']
-        status.battery_status = status_dict['batteryStatus']
-
-        return status
-
-    @staticmethod
-    def to_csv(status_dict):
-        """ Prepares dict to be written to a csv
-        :return: dict
-        """
-        flattened_dict = flatten_dict(status_dict)
-        to_csv_dict = keep_entry(flattened_dict, 'currentLocation', ['name'])
-
-        return to_csv_dict
 
 
 class TaskStatus(object):
