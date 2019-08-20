@@ -1,39 +1,47 @@
+import inflection
+
 from ropod.utils.uuid import generate_uuid
-from ropod.structs.status import RobotStatus
 from ropod.utils.datasets import flatten_dict, keep_entry
+
+attributes = ['position', 'availability', 'component_status', 'schedule', 'current_task',
+              'version']
 
 
 class Robot(object):
-    def __init__(self, robot_id, uuid=None, status=None, nickname=None, version=None):
+    def __init__(self, robot_id, uuid=None, **kwargs):
         self.robot_id = robot_id
-        self.schedule = ''
-        self.nickname = nickname
 
         if uuid is None:
             self.uuid = generate_uuid()
         else:
             self.uuid = uuid
 
-        if status is None:
-            self.status = RobotStatus()
-        else:
-            self.status = status
+        self.last_update = dict()
 
-        if version is None:
-            self.version = {'hardware': Hardware.full_version(),
-                            'software': Software.full_version(),
-                            'black_box': BlackBox.full_version()}
-        else:
-            self.version = version
+        self.position = kwargs.get('position', None)
+        self.availability = kwargs.get('availability', None)
+        self.component_status = kwargs.get('component_status', None)
+        self.schedule = kwargs.get('schedule', None)
+        self.current_task = kwargs.get('current_task', None)
+
+        self.nickname = kwargs.get('nickname', None)
+
+        self.version = kwargs.get('version', {'hardware': Hardware.full_version(),
+                                              'software': Software.full_version(),
+                                              'black_box': BlackBox.full_version()})
+
+        for attr in attributes:
+            val = self.__dict__.get('attr', None)
+            if val is not None:
+                self.last_update[attr] = val
 
     def to_dict(self):
         robot_dict = dict()
-        robot_dict['robotId'] = self.robot_id
-        robot_dict['uuid'] = self.uuid
-        robot_dict['nickname'] = self.nickname
-        robot_dict['schedule'] = self.schedule
-        robot_dict['status'] = self.status.to_dict()
-        robot_dict['version'] = self.version
+
+        for k, v in self.__dict__.items():
+            key = inflection.camelize(k, False)
+            robot_dict[key] = v
+
         return robot_dict
 
     @staticmethod
@@ -42,8 +50,8 @@ class Robot(object):
         robot.schedule = robot_dict['schedule']
         robot.nickname = robot_dict.get('nickname', None)
         robot.uuid = robot_dict.get('uuid')
-        robot.status = RobotStatus.from_dict(robot_dict['status'])
         robot.version = robot_dict.get('version')
+        robot.position = robot_dict.get('position')
         return robot
 
     @staticmethod
