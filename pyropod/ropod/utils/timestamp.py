@@ -1,25 +1,79 @@
 from datetime import timezone, datetime, timedelta
 
 
-class TimeStamp(object):
+class TimeStamp:
+    """A timestamp object that supports some of the operations of datetime objects.
 
-    @staticmethod
-    def get_time_stamp(delta=None):
-        """
-        @param delta    datetime.timedelta object specifying the difference
-                            between today and the desired date
-        """
+    Args:
+        delta: Can be an object of type datetime.timedelta or TimeStamp
+    """
 
-        if delta is None:
-            return datetime.now().timestamp()
+    def __init__(self, delta=None):
+        """Constructor of the TimeStamp object.
+
+        This creates an abstraction of a datetime.datetime.now() object
+
+        Args:
+            delta (timedelta): A timedelta object to be added to datetime.now()
+        """
+        self._time = datetime.now()
+        if delta is not None:
+            self._time + delta
+
+    def __add__(self, delta):
+        if isinstance(delta, timedelta):
+            return self._time + delta
+        elif isinstance(delta, TimeStamp):
+            # noinspection PyTypeChecker
+            return self._time + delta._time
         else:
-            if not isinstance(delta, timedelta):
-                raise Exception("delta must be an object of datetime.timedelta.")
-            return (datetime.now() + delta).timestamp()
+            raise Exception("delta must be an object of datetime.timedelta.")
 
-    @staticmethod
-    def to_str(time_stamp):
+    def __sub__(self, delta):
+        if isinstance(delta, timedelta):
+            return self._time - delta
+        if isinstance(delta, TimeStamp):
+            return self._time - delta._time
+        else:
+            raise Exception("delta must be an object of datetime.timedelta.")
+
+    def __str__(self):
+        return self._time.isoformat()
+
+    def __repr__(self):
+        return "TimeStamp(%s)" % self._time.isoformat()
+
+    @property
+    def timestamp(self):
+        return self._time.timestamp()
+
+    @timestamp.setter
+    def timestamp(self, value):
+        if not isinstance(value, datetime):
+            raise Exception("value must be an object of datetime.datetime")
+
+        self._time = value
+
+    def to_str(self):
+        """Returns the timestamp as a string in ISO format"""
+        return self._time.isoformat()
+
+    def get_difference(self, other, resolution=None):
+        """Returns the difference between itself and another timedelta or TimeStamp object
+
+        Args:
+            other: timedelta or TimeStamp object
+            resolution (str): the desired resolution of the result.
+                    It can either be "hours" or "minutes".
+                    If no resolution is specified, it will return the timedelta object
+        Returns:
+            timedelta object or float number depending on the specified resolution:
         """
-        Returns a string containing the time stamp in ISO format
-        """
-        return datetime.fromtimestamp(time_stamp, timezone.utc).isoformat()
+        result = self.__sub__(other)
+
+        if resolution is None:
+            return result
+        elif resolution == 'hours':
+            return result.total_seconds()/3600
+        elif resolution == "minutes":
+            return result.total_seconds()/60
