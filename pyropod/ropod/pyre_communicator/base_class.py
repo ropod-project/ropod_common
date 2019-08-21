@@ -9,7 +9,7 @@ from ropod.utils.timestamp import TimeStamp as ts
 from ropod.utils.uuid import generate_uuid
 
 from pyre_base.base_class import PyreBase
-from ropod.utils.models import MessageFactory
+from ropod.utils.models import RopodMessageFactory
 
 ZYRE_SLEEP_TIME = 0.250  # type: float
 
@@ -28,7 +28,7 @@ class RopodPyre(PyreBase):
         :param extra_headers: a dictionary containing the additional headers
         """
         self.logger = logging.getLogger('RopodPyre')
-        self.mf = MessageFactory()
+        self.mf = RopodMessageFactory()
 
         self.acknowledge = kwargs.get('acknowledge', False)
 
