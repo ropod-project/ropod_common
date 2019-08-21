@@ -1,3 +1,4 @@
+import dateutil.parser
 from datetime import timezone, datetime, timedelta
 
 
@@ -36,6 +37,18 @@ class TimeStamp:
             return self._time - delta._time
         else:
             raise Exception("delta must be an object of datetime.timedelta.")
+
+    def __gt__(self, other):
+        return self._time > other._time
+
+    def __lt__(self, other):
+        return self._time < other._time
+
+    def __ge__(self, other):
+        return self._time >= other._time
+
+    def __le__(self, other):
+        return self._time <= other._time
 
     def __str__(self):
         return self._time.isoformat()
@@ -77,3 +90,14 @@ class TimeStamp:
             return result.total_seconds()/3600
         elif resolution == "minutes":
             return result.total_seconds()/60
+
+    @classmethod
+    def from_datetime(cls, datetime):
+        x = cls()
+        x._time = datetime
+        return x
+
+    @classmethod
+    def from_str(cls, iso_date):
+        t = dateutil.parser.parse(iso_date)
+        return cls.from_datetime(t)

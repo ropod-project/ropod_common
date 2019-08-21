@@ -278,8 +278,9 @@ class Task(object):
         """Returns True if the given task needs to be dispatched based on
          the task schedule; returns False otherwise
         """
-        current_time = TimeStamp.get_time_stamp()
-        if self.start_time < current_time:
+        start_time = TimeStamp.from_str(self.start_time)
+        current_time = TimeStamp.timestamp
+        if start_time < current_time:
             return True
         else:
             return False
