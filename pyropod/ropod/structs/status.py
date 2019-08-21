@@ -4,8 +4,22 @@ from ropod.structs.area import Area
 from ropod.utils.datasets import flatten_dict, keep_entry
 
 
+class AvailabilityStatus:
+    BUSY = 0  # Executing a task
+    CHARGING = 1  # Recharging its battery
+    IDLE = 2  # Available (no task assigned at the moment)
+    FAILURE = 3  # Critical failure, robot can't recover
+    DEFECTIVE = 4  # Robot has a failure, but still functional. Requires maintenance
+    NO_COMMUNICATION = 5  # FMS has lost communication with the robot for more than 15 minutes?
 
 
+class ComponentStatus:
+    OPTIMAL: 1
+    SUBOPTIMAL: 2
+    DEGRADED: 3
+    CRITICAL: 4
+    FAILED: 5
+    NONRESPONSIVE: -1
 
 
 class TaskStatus(object):
