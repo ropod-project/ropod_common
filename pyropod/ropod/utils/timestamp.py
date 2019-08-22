@@ -29,9 +29,9 @@ class TimeStamp:
 
     def __sub__(self, delta):
         if isinstance(delta, timedelta):
-            return self._time - delta
-        if isinstance(delta, TimeStamp):
-            return self._time - delta._time
+            return TimeStamp.from_datetime(self._time - delta)
+        # if isinstance(delta, TimeStamp):
+        #     return self._time - delta._time
         else:
             raise Exception("delta must be an object of datetime.timedelta.")
 
@@ -79,7 +79,12 @@ class TimeStamp:
         Returns:
             timedelta object or float number depending on the specified resolution:
         """
-        result = self.__sub__(other)
+        if isinstance(other, timedelta):
+            result = self.__sub__(other)
+        elif isinstance(other, TimeStamp):
+            result = self._time - other._time
+        else:
+            raise Exception("Object must be either of timedelta or TimeStamp type")
 
         if resolution is None:
             return result
