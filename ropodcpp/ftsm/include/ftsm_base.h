@@ -34,6 +34,7 @@ namespace ftsm
                  std::string robot_store_db_name="robot_store", int robot_store_db_port=27017,
                  std::string robot_store_component_collection="components",
                  std::string robot_store_status_collection="status",
+                 std::string robot_store_sm_state_collection="component_sm_states",
                  bool debug=false);
 
         /**
@@ -80,6 +81,8 @@ namespace ftsm
 
         std::string robot_store_status_collection;
 
+        std::string robot_store_sm_state_collection;
+
         /*
         A dictionary of the form
         {
@@ -113,9 +116,13 @@ namespace ftsm
 
         std::map<std::string, std::map<std::string, std::string>> getDependencyMonitors(std::string component_name);
 
-        std::map<std::string, std::string> getDependencyStatuses();
+        void getDependencyStatuses();
+
+        void writeSMState();
 
         std::thread depend_status_thread;
+
+        std::thread sm_state_thread;
 
         bool debug;
 

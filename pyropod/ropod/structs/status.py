@@ -28,16 +28,16 @@ class TaskStatus(object):
     SCHEDULED = 3  # Task is ready to be dispatched
     SHIPPED = 4  # The task was sent to the robot
     ONGOING = 5
-    DELAYED = 6  # The robot is engaged in task execution but the task is taking longer than expected.
-    COMPLETED = 7
-    ABORTED = 8  # Aborted by the system, not by the user
-    FAILED = 9   # Re-allocation or re-scheduling failed
-    CANCELED = 10  # Canceled before execution starts
-    PREEMPTED = 11  # Canceled during execution
+    COMPLETED = 6
+    ABORTED = 7  # Aborted by the system, not by the user
+    FAILED = 8   # Execution failed
+    CANCELED = 9  # Canceled before execution starts
+    PREEMPTED = 10  # Canceled during execution
 
     def __init__(self, task_id):
         self.task_id = task_id
         self.status = self.UNALLOCATED
+        self.delayed = False
         self.current_robot_action = dict()
         self.completed_robot_actions = dict()
         self.estimated_task_duration = -1.
@@ -46,6 +46,7 @@ class TaskStatus(object):
         task_dict = dict()
         task_dict['task_id'] = self.task_id
         task_dict['status'] = self.status
+        task_dict['delayed'] = self.delayed
         task_dict['estimated_task_duration'] = self.estimated_task_duration
         task_dict['current_robot_actions'] = copy.copy(self.current_robot_action)
         task_dict['completed_robot_actions'] = copy.copy(self.completed_robot_actions)
@@ -55,6 +56,7 @@ class TaskStatus(object):
     def from_dict(status_dict):
         status = TaskStatus(status_dict['task_id'])
         status.status = status_dict['status']
+        status.delayed = status_dict['delayed']
         status.estimated_task_duration = status_dict['estimated_task_duration']
         status.current_robot_action = status_dict['current_robot_actions']
         status.completed_robot_actions = status_dict['completed_robot_actions']
