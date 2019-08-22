@@ -69,29 +69,27 @@ class TimeStamp:
         return self._time.isoformat()
 
     def get_difference(self, other, resolution=None):
-        """Returns the difference between itself and another timedelta or TimeStamp object
+        """Returns the difference between itself and another TimeStamp object
 
         Args:
             other: timedelta or TimeStamp object
             resolution (str): the desired resolution of the result.
                     It can either be "hours" or "minutes".
-                    If no resolution is specified, it will return the timedelta object
+                    If no valid resolution is specified, it will return the timedelta object.
         Returns:
-            timedelta object or float number depending on the specified resolution:
+            timedelta object or float number depending on the specified resolution.
         """
-        if isinstance(other, timedelta):
-            result = self.__sub__(other)
-        elif isinstance(other, TimeStamp):
+        _res = {'hours': 3600, 'minutes': 60}.get(resolution)
+
+        if isinstance(other, TimeStamp):
             result = self._time - other._time
         else:
-            raise Exception("Object must be either of timedelta or TimeStamp type")
+            raise Exception("Object must be of TimeStamp type")
 
-        if resolution is None:
+        if resolution in ['hours', 'minutes']:
+            return result.total_seconds() / _res
+        else:
             return result
-        elif resolution == 'hours':
-            return result.total_seconds()/3600
-        elif resolution == "minutes":
-            return result.total_seconds()/60
 
     @classmethod
     def from_datetime(cls, datetime):
