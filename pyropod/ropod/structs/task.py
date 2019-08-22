@@ -199,13 +199,29 @@ class Task(object):
         task.estimated_duration = datetime.timedelta(minutes=task_dict['estimated_duration'])
         task.earliest_finish_time = TimeStamp.from_str(task_dict['earliest_finish_time'])
         task.latest_finish_time = TimeStamp.from_str(task_dict['latest_finish_time'])
-        task.start_time = TimeStamp.from_str(task_dict['start_time'])
-        task.finish_time = TimeStamp.from_str(task_dict['finish_time'])
+
+        start_time = task_dict.get('start_time', None)
+        if start_time:
+            task.start_time = TimeStamp.from_str(start_time)
+        else:
+            task.start_time = start_time
+
+        finish_time = task_dict.get('finish_time', None)
+        if finish_time:
+            task.finish_time = TimeStamp.from_str(finish_time)
+        else:
+            task.finish_time = finish_time
+
         task.pickup_pose = Area.from_dict(task_dict['pickup_pose'])
         task.delivery_pose = Area.from_dict(task_dict['delivery_pose'])
         task.priority = task_dict['priority']
         task.status = TaskStatus.from_dict(task_dict['status'])
-        task.pickup_start_time = TimeStamp.from_str(task_dict['pickup_start_time'])
+        pickup_start_time = task_dict.get('pickup_start_time', None)
+        if pickup_start_time:
+            task.pickup_start_time = TimeStamp.from_str(pickup_start_time)
+        else:
+            task.pickup_start_time = pickup_start_time
+
         task.hard_constraints = task_dict['hard_constraints']
         for robot_id, actions in task_dict['robot_actions'].items():
             task.robot_actions[robot_id] = list()
