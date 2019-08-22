@@ -23,10 +23,7 @@ class TimeStamp:
 
     def __add__(self, delta):
         if isinstance(delta, timedelta):
-            return self._time + delta
-        elif isinstance(delta, TimeStamp):
-            # noinspection PyTypeChecker
-            return self._time + delta._time
+            return TimeStamp.from_datetime(self._time + delta)
         else:
             raise Exception("delta must be an object of datetime.timedelta.")
 
