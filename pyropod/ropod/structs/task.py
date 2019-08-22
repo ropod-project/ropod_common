@@ -159,13 +159,25 @@ class Task(object):
         task_dict['estimated_duration'] = self.estimated_duration.total_seconds() / 60  # Turn duration into minutes
         task_dict['earliest_finish_time'] = self.earliest_finish_time.to_str()
         task_dict['latest_finish_time'] = self.latest_finish_time.to_str()
-        task_dict['start_time'] = self.start_time.to_str()
-        task_dict['finish_time'] = self.finish_time.to_str()
+        if self.start_time:
+            task_dict['start_time'] = self.start_time.to_str()
+        else:
+            task_dict['start_time'] = self.start_time
+
+        if self.finish_time:
+            task_dict['finish_time'] = self.finish_time.to_str()
+        else:
+            task_dict['finish_time'] = self.finish_time
+
         task_dict['pickup_pose'] = self.pickup_pose.to_dict()
         task_dict['delivery_pose'] = self.delivery_pose.to_dict()
         task_dict['priority'] = self.priority
         task_dict['status'] = self.status.to_dict()
-        task_dict['pickup_start_time'] = self.pickup_start_time.to_str()
+        if self.pickup_start_time:
+            task_dict['pickup_start_time'] = self.pickup_start_time.to_str()
+        else:
+            task_dict['pickup_start_time'] = self.pickup_start_time
+
         task_dict['hard_constraints'] = self.hard_constraints
         task_dict['robot_actions'] = dict()
         for robot_id, actions in self.robot_actions.items():
