@@ -19,7 +19,7 @@ class TimeStamp:
         """
         self._time = datetime.now()
         if delta is not None:
-            self._time + delta
+            self._time = self._time + delta
 
     def __add__(self, delta):
         if isinstance(delta, timedelta):
