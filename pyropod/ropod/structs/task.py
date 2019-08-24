@@ -318,7 +318,7 @@ class TaskConstraints(object):
     @staticmethod
     def relative_to_ztp(task, ztp, resolution):
         """ Returns the temporal constraints (earliest_start_time, latest_start_time)
-        referenced to a ZTP (zero timepoint)
+        relative to a ZTP (zero timepoint)
 
         Args:
             task (Task): Task object
@@ -326,13 +326,13 @@ class TaskConstraints(object):
             resolution (str): Resolution of the difference between the task temporal constraints
                             and the ztp
 
-        Return: referenced_est (float): earliest start time relative to the ztp
-                referenced_lst (float): latest start time relative to the ztp
+        Return: r_earliest_start_time (float): earliest start time relative to the ztp
+                r_latest_start_time (float): latest start time relative to the ztp
         """
-        relative_est = task.earliest_start_time.get_difference(ztp, resolution)
-        relative_lst = task.latest_start_time.get_difference(ztp, resolution)
+        r_earliest_start_time = task.earliest_start_time.get_difference(ztp, resolution)
+        r_latest_start_time = task.latest_start_time.get_difference(ztp, resolution)
 
-        return relative_est, relative_lst
+        return r_earliest_start_time, r_latest_start_time
 
 
 
