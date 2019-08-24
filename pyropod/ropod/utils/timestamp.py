@@ -9,15 +9,19 @@ class TimeStamp:
         delta: Can be an object of type datetime.timedelta or TimeStamp
     """
 
-    def __init__(self, delta=None):
+    def __init__(self, delta=None, **kwargs):
         """Constructor of the TimeStamp object.
 
-        This creates an abstraction of a datetime.datetime.now() object
+        This creates an abstraction of a datetime object
 
         Args:
             delta (timedelta): A timedelta object to be added to datetime.now()
+            kwargs
+             stamp_time (datetime): Time at which the TimeStamp is initialized, it defaults to datetime.now()
         """
-        self._time = datetime.now()
+        stamp_time = kwargs.get("stamp_time", datetime.now())
+        self._time = stamp_time
+
         if delta is not None:
             self._time = self._time + delta
 

@@ -1,23 +1,17 @@
 import copy
-
-from ropod.structs.area import Area
-from ropod.utils.datasets import flatten_dict, keep_entry
-
-
-
-
+import datetime
 
 
 class TaskStatus(object):
     UNALLOCATED = 1
     ALLOCATED = 2
     SCHEDULED = 3  # Task is ready to be dispatched
-    SHIPPED = 4  # The task was sent to the robot
+    SHIPPED = 4  # The task has been sent to the robot
     ONGOING = 5
     COMPLETED = 6
     ABORTED = 7  # Aborted by the system, not by the user
     FAILED = 8   # Execution failed
-    CANCELED = 9  # Canceled before execution starts
+    CANCELED = 9  # Canceled before execution started
     PREEMPTED = 10  # Canceled during execution
 
     def __init__(self, task_id):
@@ -33,7 +27,12 @@ class TaskStatus(object):
         task_dict['task_id'] = self.task_id
         task_dict['status'] = self.status
         task_dict['delayed'] = self.delayed
-        task_dict['estimated_task_duration'] = self.estimated_task_duration
+
+        if isinstance(self.estimated_task_duration, datetime.timedelta):
+            task_dict['estimated_task_duration'] = self.estimated_task_duration.total_seconds() / 60 # Turn duration into minutes
+        else:
+            task_dict['estimated_task_duration'] = self.estimated_task_duration
+
         task_dict['current_robot_actions'] = copy.copy(self.current_robot_action)
         task_dict['completed_robot_actions'] = copy.copy(self.completed_robot_actions)
         return task_dict
@@ -43,7 +42,7 @@ class TaskStatus(object):
         status = TaskStatus(status_dict['task_id'])
         status.status = status_dict['status']
         status.delayed = status_dict['delayed']
-        status.estimated_task_duration = status_dict['estimated_task_duration']
+        status.estimated_task_duration = datetime.timedelta(minutes=status_dict['estimated_task_duration'])
         status.current_robot_action = status_dict['current_robot_actions']
         status.completed_robot_actions = status_dict['completed_robot_actions']
         return status

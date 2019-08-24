@@ -103,7 +103,6 @@ class Task(object):
             pickup_pose (Area): The location where the robot should collect the load
             delivery_pose (Area): The location where the robot must drop off its load
             priority (constant): The task priority as defined by the constants EMERGENCY, HIGH, NORMAL, LOW
-            pickup_start_time: (TimeStamp):
             hard_constraints (bool): False if the task can be
                                     scheduled ASAP, True if the task is not flexible. Defaults to True
         """
@@ -123,7 +122,6 @@ class Task(object):
         self.latest_finish_time = latest_start_time + estimated_duration
         self.start_time = kwargs.get('start_time', None)
         self.finish_time = kwargs.get('finish_time', None)
-        self.pickup_start_time = kwargs.get('pickup_start_time', None)
         self.hard_constraints = kwargs.get('hard_constraints', True)
 
         if isinstance(pickup_pose, Area):
@@ -173,11 +171,6 @@ class Task(object):
         task_dict['delivery_pose'] = self.delivery_pose.to_dict()
         task_dict['priority'] = self.priority
         task_dict['status'] = self.status.to_dict()
-        if self.pickup_start_time:
-            task_dict['pickup_start_time'] = self.pickup_start_time.to_str()
-        else:
-            task_dict['pickup_start_time'] = self.pickup_start_time
-
         task_dict['hard_constraints'] = self.hard_constraints
         task_dict['robot_actions'] = dict()
         for robot_id, actions in self.robot_actions.items():
@@ -216,12 +209,6 @@ class Task(object):
         task.delivery_pose = Area.from_dict(task_dict['delivery_pose'])
         task.priority = task_dict['priority']
         task.status = TaskStatus.from_dict(task_dict['status'])
-        pickup_start_time = task_dict.get('pickup_start_time', None)
-        if pickup_start_time:
-            task.pickup_start_time = TimeStamp.from_str(pickup_start_time)
-        else:
-            task.pickup_start_time = pickup_start_time
-
         task.hard_constraints = task_dict['hard_constraints']
         for robot_id, actions in task_dict['robot_actions'].items():
             task.robot_actions[robot_id] = list()
@@ -319,9 +306,35 @@ class Task(object):
         """Returns True if the given task needs to be dispatched based on
          the task schedule; returns False otherwise
         """
-        start_time = TimeStamp.from_str(self.start_time)
         current_time = TimeStamp()
-        if start_time < current_time:
+        if self.start_time < current_time:
             return True
         else:
             return False
+
+
+class TaskConstraints(object):
+
+    @staticmethod
+    def relative_to_ztp(task, ztp, resolution):
+        """ Returns the temporal constraints (earliest_start_time, latest_start_time)
+        referenced to a ZTP (zero timepoint)
+
+        Args:
+            task (Task): Task object
+            ztp (TimeStamp): Zero Time Point. Origin time to which task temporal information is referenced to
+            resolution (str): Resolution of the difference between the task temporal constraints
+                            and the ztp
+
+        Return: referenced_est (float): earliest start time relative to the ztp
+                referenced_lst (float): latest start time relative to the ztp
+        """
+        relative_est = task.earliest_start_time.get_difference(ztp, resolution)
+        relative_lst = task.latest_start_time.get_difference(ztp, resolution)
+
+        return relative_est, relative_lst
+
+
+
+
+
