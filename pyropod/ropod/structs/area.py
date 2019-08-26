@@ -1,3 +1,6 @@
+from ropod.utils.timestamp import TimeStamp
+
+
 class SubArea(object):
     def __init__(self):
         self.id = ''
@@ -25,6 +28,8 @@ class SubArea(object):
 
 class SubAreaReservation(object):
     def __init__(self):
+        self.start_time = None
+        self.end_time = None
         self.sub_area_id = -1
         self.task_id = ''
         self.robot_id = ''
@@ -38,8 +43,8 @@ class SubAreaReservation(object):
         sub_area_reservation_dict['subAreaId'] = self.sub_area_id
         sub_area_reservation_dict['taskId'] = self.task_id
         sub_area_reservation_dict['robotId'] = self.robot_id
-        sub_area_reservation_dict['startTime'] = self.start_time
-        sub_area_reservation_dict['endTime'] = self.end_time
+        sub_area_reservation_dict['startTime'] = self.start_time.to_str()
+        sub_area_reservation_dict['endTime'] = self.end_time.to_str()
         sub_area_reservation_dict['status'] = self.status
         sub_area_reservation_dict['requiredCapacity'] = self.required_capacity
         return sub_area_reservation_dict
@@ -50,8 +55,8 @@ class SubAreaReservation(object):
         sub_area_reservation.sub_area_id = sub_area_reservation_dict['subAreaId']
         sub_area_reservation.task_id = sub_area_reservation_dict['taskId']
         sub_area_reservation.robot_id = sub_area_reservation_dict['robotId']
-        sub_area_reservation.start_time = sub_area_reservation_dict['startTime']
-        sub_area_reservation.end_time = sub_area_reservation_dict['endTime']
+        sub_area_reservation.start_time = TimeStamp.from_str(sub_area_reservation_dict['startTime'])
+        sub_area_reservation.end_time = TimeStamp.from_str(sub_area_reservation_dict['endTime'])
         sub_area_reservation.status = sub_area_reservation_dict['status']
         sub_area_reservation.required_capacity = sub_area_reservation_dict['requiredCapacity']
         return sub_area_reservation

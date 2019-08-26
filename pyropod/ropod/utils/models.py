@@ -1,4 +1,4 @@
-from ropod.utils.timestamp import TimeStamp as ts
+from ropod.utils.timestamp import TimeStamp
 from ropod.utils.uuid import generate_uuid
 from ropod.structs.task import Task, TaskRequest
 from ropod.structs.elevator import ElevatorRequest, RobotCallUpdate, RobotElevatorCallReply
@@ -33,7 +33,7 @@ class MessageFactoryBase(object):
         return {"header": {'type': message_type,
                            'metamodel': 'ropod-%s-schema.json' % meta_model,
                            'msgId': generate_uuid(),
-                           'timestamp': ts.get_time_stamp(),
+                           'timestamp': TimeStamp().to_str(),
                            'receiverIds': recipients}}
 
     @staticmethod
@@ -47,7 +47,7 @@ class MessageFactoryBase(object):
     def update_timestamp(message):
         header = message.get('header')
         if header:
-            header.update(timeStamp=ts.get_time_stamp())
+            header.update(timeStamp=TimeStamp().to_str())
         else:
             header = MessageFactoryBase.get_header(None)
             message.update(header)

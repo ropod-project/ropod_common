@@ -1,4 +1,5 @@
 import copy
+import datetime
 
 from ropod.structs.action import Action
 from ropod.structs.area import Area
@@ -38,8 +39,8 @@ class TaskRequest(object):
         request_dict['pickupLocationLevel'] = self.pickup_pose.floor_number
         request_dict['deliveryLocation'] = self.delivery_pose.name
         request_dict['deliveryLocationLevel'] = self.delivery_pose.floor_number
-        request_dict['earliestStartTime'] = self.earliest_start_time
-        request_dict['latestStartTime'] = self.latest_start_time
+        request_dict['earliestStartTime'] = self.earliest_start_time.to_str()
+        request_dict['latestStartTime'] = self.latest_start_time.to_str()
         request_dict['userId'] = self.user_id
         request_dict['loadType'] = self.load_type
         request_dict['loadId'] = self.load_id
@@ -55,8 +56,8 @@ class TaskRequest(object):
         request.load_type = request_dict["loadType"]
         request.load_id = request_dict["loadId"]
         request.user_id = request_dict["userId"]
-        request.earliest_start_time = request_dict["earliestStartTime"]
-        request.latest_start_time = request_dict["latestStartTime"]
+        request.earliest_start_time = TimeStamp.from_str(request_dict["earliestStartTime"])
+        request.latest_start_time = TimeStamp.from_str(request_dict["latestStartTime"])
 
         request.pickup_pose = Area()
         request.pickup_pose.name = request_dict["pickupLocation"]
@@ -79,40 +80,49 @@ class TaskRequest(object):
 
 
 class Task(object):
-    """
-    Parameters for task allocation:
-    earliest_start_time: seconds (float)
-    latest_start_time: seconds (float)
-    start_pose_name: String indicating the location in the map where the task should start (taken from pickup_pose.name)
-    finish_pose_name: String indicating the location in the map where the task should finish (taken from delivery_pose.name)
-    """
 
     EMERGENCY = 0
     HIGH = 1
     NORMAL = 2
     LOW = 3
 
-    def __init__(self, id='', robot_actions=dict(), loadType='', loadId='', team_robot_ids=list(),
-                 earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1, start_time=-1, finish_time=-1, pickup_pose=Area(), delivery_pose=Area(),
-                 priority=NORMAL, pickup_start_time=-1, hard_constraints=True):
+    def __init__(self, id=None, robot_actions=dict(), team_robot_ids=list(),
+                 earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1,
+                 pickup_pose=Area(), delivery_pose=Area(), **kwargs):
+        """Constructor for the Task object
+
+        Args:
+            id (str): A string of the format UUID
+            robot_actions (dict): A dictionary with robot IDs as keys, and the list of actions to execute as values
+            loadType (str): Valid values are "MobiDik", "Sickbed". Defaults to MobiDik
+            loadId (str): A string of the format UUID
+            team_robot_ids (list): A list of strings containing the UUIDs of the robots in the task
+            earliest_start_time (TimeStamp): The earliest a task can start
+            latest_start_time (TimeStamp): The latest a task can start
+            estimated_duration (timedelta): A timedelta object specifying the duration
+            pickup_pose (Area): The location where the robot should collect the load
+            delivery_pose (Area): The location where the robot must drop off its load
+            priority (constant): The task priority as defined by the constants EMERGENCY, HIGH, NORMAL, LOW
+            hard_constraints (bool): False if the task can be
+                                    scheduled ASAP, True if the task is not flexible. Defaults to True
+        """
 
         if not id:
             self.id = generate_uuid()
         else:
             self.id = id
         self.robot_actions = robot_actions
-        self.loadType = loadType
-        self.loadId = loadId
+        self.loadType = kwargs.get('loadType', 'MobiDik')
+        self.loadId = kwargs.get('loadId', generate_uuid())
         self.team_robot_ids = team_robot_ids
         self.earliest_start_time = earliest_start_time
         self.latest_start_time = latest_start_time
         self.estimated_duration = estimated_duration
         self.earliest_finish_time = earliest_start_time + estimated_duration
         self.latest_finish_time = latest_start_time + estimated_duration
-        self.start_time = start_time
-        self.finish_time = finish_time
-        self.pickup_start_time = pickup_start_time
-        self.hard_constraints = hard_constraints
+        self.start_time = kwargs.get('start_time', None)
+        self.finish_time = kwargs.get('finish_time', None)
+        self.hard_constraints = kwargs.get('hard_constraints', True)
 
         if isinstance(pickup_pose, Area):
             self.pickup_pose = pickup_pose
@@ -126,6 +136,7 @@ class Task(object):
 
         self.status = TaskStatus(self.id)
 
+        priority = kwargs.get('priority', self.NORMAL)
         if priority in (self.EMERGENCY, self.NORMAL, self.HIGH, self.LOW):
             self.priority = priority
         else:
@@ -141,18 +152,25 @@ class Task(object):
         task_dict['loadType'] = self.loadType
         task_dict['loadId'] = self.loadId
         task_dict['team_robot_ids'] = copy.copy(self.team_robot_ids)
-        task_dict['earliest_start_time'] = self.earliest_start_time
-        task_dict['latest_start_time'] = self.latest_start_time
-        task_dict['estimated_duration'] = self.estimated_duration
-        task_dict['earliest_finish_time'] = self.earliest_finish_time
-        task_dict['latest_finish_time'] = self.latest_finish_time
-        task_dict['start_time'] = self.start_time
-        task_dict['finish_time'] = self.finish_time
+        task_dict['earliest_start_time'] = self.earliest_start_time.to_str()
+        task_dict['latest_start_time'] = self.latest_start_time.to_str()
+        task_dict['estimated_duration'] = self.estimated_duration.total_seconds() / 60  # Turn duration into minutes
+        task_dict['earliest_finish_time'] = self.earliest_finish_time.to_str()
+        task_dict['latest_finish_time'] = self.latest_finish_time.to_str()
+        if self.start_time:
+            task_dict['start_time'] = self.start_time.to_str()
+        else:
+            task_dict['start_time'] = self.start_time
+
+        if self.finish_time:
+            task_dict['finish_time'] = self.finish_time.to_str()
+        else:
+            task_dict['finish_time'] = self.finish_time
+
         task_dict['pickup_pose'] = self.pickup_pose.to_dict()
         task_dict['delivery_pose'] = self.delivery_pose.to_dict()
         task_dict['priority'] = self.priority
         task_dict['status'] = self.status.to_dict()
-        task_dict['pickup_start_time'] = self.pickup_start_time
         task_dict['hard_constraints'] = self.hard_constraints
         task_dict['robot_actions'] = dict()
         for robot_id, actions in self.robot_actions.items():
@@ -169,18 +187,28 @@ class Task(object):
         task.loadType = task_dict['loadType']
         task.loadId = task_dict['loadId']
         task.team_robot_ids = task_dict['team_robot_ids']
-        task.earliest_start_time = task_dict['earliest_start_time']
-        task.latest_start_time = task_dict['latest_start_time']
-        task.estimated_duration = task_dict['estimated_duration']
-        task.earliest_finish_time = task_dict['earliest_finish_time']
-        task.latest_finish_time = task_dict['latest_finish_time']
-        task.start_time = task_dict['start_time']
-        task.finish_time = task_dict['finish_time']
+        task.earliest_start_time = TimeStamp.from_str(task_dict['earliest_start_time'])
+        task.latest_start_time = TimeStamp.from_str(task_dict['latest_start_time'])
+        task.estimated_duration = datetime.timedelta(minutes=task_dict['estimated_duration'])
+        task.earliest_finish_time = TimeStamp.from_str(task_dict['earliest_finish_time'])
+        task.latest_finish_time = TimeStamp.from_str(task_dict['latest_finish_time'])
+
+        start_time = task_dict.get('start_time', None)
+        if start_time:
+            task.start_time = TimeStamp.from_str(start_time)
+        else:
+            task.start_time = start_time
+
+        finish_time = task_dict.get('finish_time', None)
+        if finish_time:
+            task.finish_time = TimeStamp.from_str(finish_time)
+        else:
+            task.finish_time = finish_time
+
         task.pickup_pose = Area.from_dict(task_dict['pickup_pose'])
         task.delivery_pose = Area.from_dict(task_dict['delivery_pose'])
         task.priority = task_dict['priority']
         task.status = TaskStatus.from_dict(task_dict['status'])
-        task.pickup_start_time = task_dict['pickup_start_time']
         task.hard_constraints = task_dict['hard_constraints']
         for robot_id, actions in task_dict['robot_actions'].items():
             task.robot_actions[robot_id] = list()
@@ -278,8 +306,35 @@ class Task(object):
         """Returns True if the given task needs to be dispatched based on
          the task schedule; returns False otherwise
         """
-        current_time = TimeStamp.get_time_stamp()
+        current_time = TimeStamp()
         if self.start_time < current_time:
             return True
         else:
             return False
+
+
+class TaskConstraints(object):
+
+    @staticmethod
+    def relative_to_ztp(task, ztp, resolution):
+        """ Returns the temporal constraints (earliest_start_time, latest_start_time)
+        relative to a ZTP (zero timepoint)
+
+        Args:
+            task (Task): Task object
+            ztp (TimeStamp): Zero Time Point. Origin time to which task temporal information is referenced to
+            resolution (str): Resolution of the difference between the task temporal constraints
+                            and the ztp
+
+        Return: r_earliest_start_time (float): earliest start time relative to the ztp
+                r_latest_start_time (float): latest start time relative to the ztp
+        """
+        r_earliest_start_time = task.earliest_start_time.get_difference(ztp, resolution)
+        r_latest_start_time = task.latest_start_time.get_difference(ztp, resolution)
+
+        return r_earliest_start_time, r_latest_start_time
+
+
+
+
+
