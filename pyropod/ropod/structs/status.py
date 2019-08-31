@@ -12,12 +12,12 @@ class AvailabilityStatus:
 
 
 class ComponentStatus:
-    OPTIMAL: 1
-    SUBOPTIMAL: 2
-    DEGRADED: 3
-    CRITICAL: 4
-    FAILED: 5
-    NONRESPONSIVE: -1
+    OPTIMAL = 1
+    SUBOPTIMAL = 2
+    DEGRADED = 3
+    CRITICAL = 4
+    FAILED = 5
+    NONRESPONSIVE = -1
 
 
 class TaskStatus(object):
