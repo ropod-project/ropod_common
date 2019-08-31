@@ -5,3 +5,4 @@ pymongo
 git+https://github.com/ropod-project/pyre.git
 git+https://github.com/ropod-project/zyre_base.git
 inflection
+python-dateutil
