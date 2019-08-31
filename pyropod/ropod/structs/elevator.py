@@ -7,7 +7,7 @@ class ElevatorRequests(object):
         self.number_of_active_requests = -1
 
 
-class ElevatorRequest(object):
+class ElevatorRequestStatus:
     PENDING = 0
     ACCEPTED = 8
     GOING_TO_START = 1
@@ -17,6 +17,9 @@ class ElevatorRequest(object):
     COMPLETED = 5
     CANCELED = 6
     FAILED = 7
+
+
+class ElevatorRequest(object):
 
     def __init__(self, query_id, start_floor, goal_floor, command, elevator_id=1, **kwargs):
 
@@ -30,7 +33,7 @@ class ElevatorRequest(object):
         self.task_id = kwargs.get('task_id', None)
         self.load = kwargs.get('load', None)
         self.robot_id = kwargs.get('robot_id', None)
-        self.status = ElevatorRequest.PENDING
+        self.status = ElevatorRequestStatus.PENDING
 
     def to_dict(self):
         request_dict = dict()
@@ -59,7 +62,7 @@ class ElevatorRequest(object):
         robot_request.task_id = request.get('taskId')
         robot_request.load = request.get('load')
         robot_request.robot_id = request.get('robotId')
-        robot_request.status = request.get('status', ElevatorRequest.PENDING)
+        robot_request.status = request.get('status', ElevatorRequestStatus.PENDING)
         return robot_request
 
     def __str__(self):
