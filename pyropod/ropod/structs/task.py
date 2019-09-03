@@ -25,8 +25,8 @@ class TaskRequest(object):
             self.id = id
         self.pickup_pose = Area()
         self.delivery_pose = Area()
-        self.earliest_start_time = -1.
-        self.latest_start_time = -2.
+        self.earliest_pickup_time = TimeStamp()
+        self.latest_pickup_time = TimeStamp()
         self.user_id = ''
         self.load_type = ''
         self.load_id = ''
@@ -39,8 +39,8 @@ class TaskRequest(object):
         request_dict['pickupLocationLevel'] = self.pickup_pose.floor_number
         request_dict['deliveryLocation'] = self.delivery_pose.name
         request_dict['deliveryLocationLevel'] = self.delivery_pose.floor_number
-        request_dict['earliestStartTime'] = self.earliest_start_time.to_str()
-        request_dict['latestStartTime'] = self.latest_start_time.to_str()
+        request_dict['earliestPickupTime'] = self.earliest_start_time.to_str()
+        request_dict['latestPickupTime'] = self.latest_start_time.to_str()
         request_dict['userId'] = self.user_id
         request_dict['loadType'] = self.load_type
         request_dict['loadId'] = self.load_id
@@ -56,8 +56,8 @@ class TaskRequest(object):
         request.load_type = request_dict["loadType"]
         request.load_id = request_dict["loadId"]
         request.user_id = request_dict["userId"]
-        request.earliest_start_time = TimeStamp.from_str(request_dict["earliestStartTime"])
-        request.latest_start_time = TimeStamp.from_str(request_dict["latestStartTime"])
+        request.earliest_pickup_time = TimeStamp.from_str(request_dict["earliestPickupTime"])
+        request.latest_pickup_time = TimeStamp.from_str(request_dict["latestPickupTime"])
 
         request.pickup_pose = Area()
         request.pickup_pose.name = request_dict["pickupLocation"]
@@ -79,12 +79,14 @@ class TaskRequest(object):
         return to_csv_dict
 
 
-class Task(object):
-
+class TaskPriority:
     EMERGENCY = 0
     HIGH = 1
     NORMAL = 2
     LOW = 3
+
+
+class Task(object):
 
     def __init__(self, id=None, robot_actions=dict(), team_robot_ids=list(),
                  earliest_start_time=-1, latest_start_time=-1, estimated_duration=-1,
