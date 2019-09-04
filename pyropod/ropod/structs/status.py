@@ -20,6 +20,13 @@ class ComponentStatus:
     NONRESPONSIVE = -1
 
 
+class ActionStatus:
+    PLANNED = 11
+    ONGOING = 5
+    COMPLETED = 6
+    FAILED = 8  # Execution failed
+
+
 class TaskStatus(object):
     UNALLOCATED = 1
     ALLOCATED = 2
