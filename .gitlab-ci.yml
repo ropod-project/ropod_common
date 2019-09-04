@@ -65,8 +65,10 @@ release-latest-image:
 
 
 trigger_build:
+  before_script:
+    - apk --no-cache add curl 
   stage: release
   script:
-    - "curl -X POST -F token='$DOCKER_PIPELINE' -F ref=master https://git.ropod.org/api/v4/projects/120/trigger/pipeline"
+    - "curl --insecure -X POST -F token='$DOCKER_PIPELINE' -F ref=master https://git.ropod.org/api/v4/projects/120/trigger/pipeline"
   only: 
     - develop
