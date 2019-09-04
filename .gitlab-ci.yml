@@ -62,3 +62,11 @@ release-latest-image:
     - docker push $DOCKERHUB_RELEASE_IMAGE
   only:
     - develop
+
+
+trigger_build:
+  stage: release
+  script:
+    - "curl -X POST -F token='$DOCKER_PIPELINE' -F ref=master https://git.ropod.org/api/v4/projects/120/trigger/pipeline"
+  only: 
+    - develop
