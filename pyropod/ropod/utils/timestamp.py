@@ -102,3 +102,6 @@ class TimeStamp:
     def from_str(cls, iso_date):
         t = dateutil.parser.parse(iso_date)
         return cls.from_datetime(t)
+
+    def to_datetime(self):
+        return self._time
