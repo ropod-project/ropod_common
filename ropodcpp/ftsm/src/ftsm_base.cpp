@@ -299,4 +299,35 @@ namespace ftsm
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
     }
+
+    void FTSMBase::recoverFromPossibleDeadRosmaster()
+    {
+        if (std::find(this->dependencies.begin(), this->dependencies.end(), "roscore") == this->dependencies.end()
+            || !this->depend_statuses.count(DependMonitorTypes::HEARTBEAT))
+        {
+            return;
+        }
+
+        Json::Value root;
+        Json::Reader reader;
+        bool parsingSuccessful = reader.parse(this->depend_statuses[DependMonitorTypes::HEARTBEAT]
+                                                                   ["roscore"]
+                                                                   ["ros/ros_master_monitor"].c_str(), root);
+
+        bool master_available = root["status"].asBool();
+
+        if (master_available) return;
+
+        this->tearDownRos();
+        while (!master_available)
+        {
+            parsingSuccessful = reader.parse(this->depend_statuses[DependMonitorTypes::HEARTBEAT]
+                                                                  ["roscore"]
+                                                                  ["ros/ros_master_monitor"].c_str(), root);
+
+            master_available = root["status"].asBool();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        this->setupRos();
+    }
 }
