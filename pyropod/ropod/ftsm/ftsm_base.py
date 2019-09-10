@@ -104,6 +104,19 @@ class FTSMBase(FTSM):
         '''
         return None
 
+    def setup_ros(self):
+        '''For ROS components, performs any necessary setup steps (initialising
+        a node, registering publishers/subscribers/services/action servers or clients).
+        '''
+        return None
+
+    def tear_down_ros(self):
+        '''For ROS components, performs any necessary cleanup steps when the ROS
+        master dies so that the component can recover itself when the master
+        comes back up (e.g. unregistering services).
+        '''
+        return None
+
     def get_dependency_statuses(self):
         '''Returns a dictionary representing the statuses
         of the components that the current component depends on,
@@ -175,6 +188,32 @@ class FTSMBase(FTSM):
                                        upsert=True)
             except pm.errors.OperationFailure as exc:
                 print('[ftms_base, write_sm_state] {0}'.format(exc))
+
+    def recover_from_possible_dead_rosmaster(self):
+        '''For ROS components that have "roscore" listed as a **heartbeat** dependency,
+        recovers from a dead ROS master in case the master is dead.
+        self.tear_down_ros and self.setup_ros should be overridden for
+        the recovery to be actually performed.
+        '''
+        if 'roscore' not in self.dependencies or DependMonitorTypes.HEARTBEAT not in self.depend_statuses:
+            return
+
+        master_available = self.depend_statuses[DependMonitorTypes.HEARTBEAT]\
+                                               ['roscore']\
+                                               ['ros/ros_master_monitor']\
+                                               ['status']
+        if master_available:
+            return
+
+        self.tear_down_ros()
+        print('[{0}] Waiting for ROS master'.format(self.name))
+        while not master_available:
+            master_available = self.depend_statuses[DependMonitorTypes.HEARTBEAT]\
+                                                   ['roscore']\
+                                                   ['ros/ros_master_monitor']\
+                                                   ['status']
+            time.sleep(0.1)
+        self.setup_ros()
 
     def __get_component_dependencies(self, component_name):
         '''Returns a list of components that the given component is dependent on,
