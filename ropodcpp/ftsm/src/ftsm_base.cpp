@@ -310,24 +310,34 @@ namespace ftsm
 
         Json::Value root;
         Json::Reader reader;
-        bool parsingSuccessful = reader.parse(this->depend_statuses[DependMonitorTypes::HEARTBEAT]
-                                                                   ["roscore"]
-                                                                   ["ros/ros_master_monitor"].c_str(), root);
 
-        bool master_available = root["status"].asBool();
-
-        if (master_available) return;
-
-        this->tearDownRos();
-        while (!master_available)
+        bool master_available;
+        try
         {
-            parsingSuccessful = reader.parse(this->depend_statuses[DependMonitorTypes::HEARTBEAT]
-                                                                  ["roscore"]
-                                                                  ["ros/ros_master_monitor"].c_str(), root);
+            auto parsingSuccessful = reader.parse(this->depend_statuses[DependMonitorTypes::HEARTBEAT]
+                                                                       ["roscore"]
+                                                                       ["ros/ros_master_monitor"].c_str(), root);
 
             master_available = root["status"].asBool();
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            if (master_available) return;
+
+            this->tearDownRos();
+            std::cout << "Waiting for ROS master" << std::endl;
+            while (!master_available)
+            {
+                parsingSuccessful = reader.parse(this->depend_statuses[DependMonitorTypes::HEARTBEAT]
+                                                                      ["roscore"]
+                                                                      ["ros/ros_master_monitor"].c_str(), root);
+
+                master_available = root["status"].asBool();
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            this->setupRos();
         }
-        this->setupRos();
+        catch(std::exception& e)
+        {
+            std::cout << e.what() << std::endl;
+        }
     }
 }
