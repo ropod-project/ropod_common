@@ -3,17 +3,21 @@ from ropod.utils.timestamp import TimeStamp
 
 class SubArea(object):
     def __init__(self):
-        self.id = ''
-        self.name = ''
-        self.type = ''
-        self.capacity = ''
+        self.id = None
+        self.name = None
+        self.type = None
+        self.capacity = None
 
     def to_dict(self):
         sub_area_dict = dict()
         sub_area_dict['name'] = self.name
         sub_area_dict['id'] = self.id
-        sub_area_dict['type'] = self.type
-        sub_area_dict['capacity'] = self.capacity
+        if self.type:
+            sub_area_dict['type'] = self.type
+
+        if self.capacity:
+            sub_area_dict['capacity'] = self.capacity
+
         return sub_area_dict
 
     @staticmethod
@@ -21,8 +25,8 @@ class SubArea(object):
         sub_area = SubArea()
         sub_area.name = sub_area_dict['name']
         sub_area.id = sub_area_dict['id']
-        sub_area.type = sub_area_dict['type']
-        sub_area.capacity = sub_area_dict['capacity']
+        sub_area.type = sub_area_dict.get('type')
+        sub_area.capacity = sub_area_dict.get('capacity')
         return sub_area
 
 
@@ -71,21 +75,27 @@ class SubAreaReservation(object):
 
 class Area(object):
     def __init__(self):
-        self.id = ''
-        self.name = ''
+        self.id = None
+        self.name = None
         self.sub_areas = list()
-        self.floor_number = 0
-        self.type = ''
+        self.floor_number = None
+        self.type = None
 
     def to_dict(self):
         area_dict = dict()
         area_dict['id'] = self.id
         area_dict['name'] = self.name
-        area_dict['subAreas'] = list()
-        area_dict['floorNumber'] = self.floor_number
-        area_dict['type'] = self.type
-        for sub_area in self.sub_areas:
-            area_dict['subAreas'].append(sub_area.to_dict())
+
+        if self.floor_number:
+            area_dict['floor_number'] = self.floor_number
+
+        if self.type:
+            area_dict['type'] = self.type
+
+        if self.sub_areas:
+            area_dict['subareas'] = list()
+            for sub_area in self.sub_areas:
+                area_dict['subareas'].append(sub_area.to_dict())
         return area_dict
 
     @staticmethod
@@ -93,9 +103,9 @@ class Area(object):
         area = Area()
         area.id = area_dict['id']
         area.name = area_dict['name']
-        area.floor_number = area_dict['floorNumber']
-        area.type = area_dict['type']
-        for sub_areas_dict in area_dict['subAreas']:
+        area.floor_number = area_dict.get('floorNumber')
+        area.type = area_dict.get('type')
+        for sub_areas_dict in area_dict.get('subAreas', list()):
             sub_area = SubArea.from_dict(sub_areas_dict)
             area.sub_areas.append(sub_area)
         return area
