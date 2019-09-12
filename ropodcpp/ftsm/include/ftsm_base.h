@@ -2,6 +2,7 @@
 #include <thread>
 #include <exception>
 #include <sstream>
+#include <algorithm>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/string/to_string.hpp>
@@ -68,6 +69,27 @@ namespace ftsm
          * needs to take place.) The default implementation simply returns "".
          */
         virtual std::string processDependStatuses();
+
+        /**
+         * For ROS components, performs any necessary setup steps (initialising
+         * a node, registering publishers/subscribers/services/action servers or clients).
+         */
+        virtual void setupRos() { }
+
+        /**
+         * For ROS components, performs any necessary cleanup steps when the ROS
+         * master dies so that the component can recover itself when the master
+         * comes back up (e.g. unregistering services).
+         */
+        virtual void tearDownRos() { }
+
+        /*
+         * For ROS components that have "roscore" listed as a **heartbeat** dependency,
+         * recovers from a dead ROS master in case the master is dead.
+         * self.tear_down_ros and self.setup_ros should be overridden for
+         * the recovery to be actually performed.
+         */
+        void recoverFromPossibleDeadRosmaster();
 
         Json::Value convertStringToJson(const std::string &msg);
     protected:
