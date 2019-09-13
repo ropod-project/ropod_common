@@ -43,7 +43,7 @@ namespace ftsm
                        std::string robot_store_status_collection,
                        std::string robot_store_sm_state_collection,
                        bool debug)
-     : FTSM(name, dependencies, max_recovery_attempts), connection_{mongocxx::uri{}}
+     : FTSM(name, dependencies, max_recovery_attempts)
     {
         this->dependency_monitors = dependency_monitors;
         this->robot_store_db_name = robot_store_db_name;
@@ -124,25 +124,41 @@ namespace ftsm
 
     std::vector<std::string> FTSMBase::getComponentDependencies(std::string component_name)
     {
-        auto collection = connection_[this->robot_store_db_name]
-                                     [this->robot_store_component_collection];
-        auto component_doc = collection.find_one(bsoncxx::builder::stream::document{}
-                                                 << "component_name" << component_name
-                                                 << bsoncxx::builder::stream::finalize);
-        auto document_view = (*component_doc).view();
+        bool dependencies_read = false;
         std::vector<std::string> dependencies;
-        for (auto key : document_view)
+        mongocxx::client connection(mongocxx::uri{});
+        std::cout << "Reading dependencies of component " << component_name << std::endl;
+        while (!dependencies_read)
         {
-            std::string key_name = key.key().to_string();
-            if (key_name == "dependencies")
+            try
             {
-                auto dependency_array = document_view[key_name].get_array().value;
-                for (auto dependency_elem : dependency_array)
+                auto collection = connection[this->robot_store_db_name][this->robot_store_component_collection];
+
+                // auto collection = this->getCollection();
+                auto component_doc = collection.find_one(bsoncxx::builder::stream::document{}
+                                                         << "component_name" << component_name
+                                                         << bsoncxx::builder::stream::finalize);
+                auto document_view = (*component_doc).view();
+                for (auto key : document_view)
                 {
-                    std::string dependency = bsoncxx::string::to_string(dependency_elem.get_utf8().value);
-                    dependencies.push_back(dependency);
+                    std::string key_name = key.key().to_string();
+                    if (key_name == "dependencies")
+                    {
+                        auto dependency_array = document_view[key_name].get_array().value;
+                        for (auto dependency_elem : dependency_array)
+                        {
+                            std::string dependency = bsoncxx::string::to_string(dependency_elem.get_utf8().value);
+                            dependencies.push_back(dependency);
+                        }
+                    }
                 }
+                dependencies_read = true;
             }
+            catch (std::exception& e)
+            {
+                std::cout << e.what() << std::endl;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
 
         if (this->debug)
@@ -159,36 +175,50 @@ namespace ftsm
 
     std::map<std::string, std::map<std::string, std::string>> FTSMBase::getDependencyMonitors(std::string component_name)
     {
-        auto collection = connection_[this->robot_store_db_name]
-                                     [this->robot_store_component_collection];
-        auto component_doc = collection.find_one(bsoncxx::builder::stream::document{}
-                                                 << "component_name" << component_name
-                                                 << bsoncxx::builder::stream::finalize);
+        bool dependency_monitors_read = false;
         std::map<std::string, std::map<std::string, std::string>> dependency_monitors;
-        auto document_view = (*component_doc).view();
-        for (auto key : document_view)
+        mongocxx::client connection(mongocxx::uri{});
+        std::cout << "Reading dependency monitors of component " << component_name << std::endl;
+        while (!dependency_monitors_read)
         {
-            std::string key_name = key.key().to_string();
-            if (key_name == "dependency_monitors")
+            try
             {
-                auto dependency_type_elements = document_view[key_name].get_document().view();
-                for (auto dependency_type_elem : dependency_type_elements)
+                auto collection = connection[this->robot_store_db_name][this->robot_store_component_collection];
+                auto component_doc = collection.find_one(bsoncxx::builder::stream::document{}
+                                                         << "component_name" << component_name
+                                                         << bsoncxx::builder::stream::finalize);
+                auto document_view = (*component_doc).view();
+                for (auto key : document_view)
                 {
-                    std::string dependency_type = dependency_type_elem.key().to_string();
-                    if (dependency_monitors.count(dependency_type) == 0)
+                    std::string key_name = key.key().to_string();
+                    if (key_name == "dependency_monitors")
                     {
-                        dependency_monitors[dependency_type] = std::map<std::string, std::string>();
-                    }
+                        auto dependency_type_elements = document_view[key_name].get_document().view();
+                        for (auto dependency_type_elem : dependency_type_elements)
+                        {
+                            std::string dependency_type = dependency_type_elem.key().to_string();
+                            if (dependency_monitors.count(dependency_type) == 0)
+                            {
+                                dependency_monitors[dependency_type] = std::map<std::string, std::string>();
+                            }
 
-                    auto dependency_elements = document_view[key_name][dependency_type].get_document().view();
-                    for (auto dependency_elem : dependency_elements)
-                    {
-                        std::string dependency = dependency_elem.key().to_string();
-                        std::string dependency_monitor = bsoncxx::string::to_string(dependency_elem.get_utf8().value);
-                        dependency_monitors[dependency_type][dependency] = dependency_monitor;
+                            auto dependency_elements = document_view[key_name][dependency_type].get_document().view();
+                            for (auto dependency_elem : dependency_elements)
+                            {
+                                std::string dependency = dependency_elem.key().to_string();
+                                std::string dependency_monitor = bsoncxx::string::to_string(dependency_elem.get_utf8().value);
+                                dependency_monitors[dependency_type][dependency] = dependency_monitor;
+                            }
+                        }
                     }
                 }
+                dependency_monitors_read = true;
             }
+            catch (std::exception& e)
+            {
+                std::cout << e.what() << std::endl;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
 
         if (this->debug)
@@ -214,13 +244,12 @@ namespace ftsm
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
 
+        mongocxx::client connection(mongocxx::uri{});
         while (this->current_state != FTSMStates::STOPPED && this->is_running)
         {
             try
             {
-                auto collection = connection_[this->robot_store_db_name]
-                                             [this->robot_store_status_collection];
-
+                auto collection = connection[this->robot_store_db_name][this->robot_store_status_collection];
                 for (auto monitor_data : this->dependency_monitors)
                 {
                     std::string monitor_type = monitor_data.first;
@@ -274,13 +303,12 @@ namespace ftsm
 
     void FTSMBase::writeSMState()
     {
+        mongocxx::client connection(mongocxx::uri{});
         while (this->current_state != FTSMStates::STOPPED)
         {
             try
             {
-                auto collection = connection_[this->robot_store_db_name]
-                                             [this->robot_store_sm_state_collection];
-
+                auto collection = connection[this->robot_store_db_name][this->robot_store_sm_state_collection];
                 auto status_doc = collection.find_one(bsoncxx::builder::stream::document{}
                                                       << "component_name" << this->name
                                                       << bsoncxx::builder::stream::finalize);
