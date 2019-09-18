@@ -32,7 +32,7 @@ class TaskStatus(object):
     ALLOCATED = 2
     PLANNED = 11
     SCHEDULED = 3  # Task is ready to be dispatched
-    SHIPPED = 4  # The task has been sent to the robot
+    DISPATCHED = 4  # The task has been sent to the robot
     ONGOING = 5
     COMPLETED = 6
     ABORTED = 7  # Aborted by the system, not by the user
