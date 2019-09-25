@@ -137,6 +137,10 @@ class RobotCallUpdate(object):
     def to_dict(self):
         return self.__dict__
 
+    @property
+    def meta_model(self):
+        return 'robot-call-update'
+
 
 class RobotElevatorCallReply(object):
     def __init__(self, query_id, query_success=True, elevator_id=1, elevator_waypoint='door-1'):
@@ -147,3 +151,7 @@ class RobotElevatorCallReply(object):
 
     def to_dict(self):
         return self.__dict__
+
+    @property
+    def meta_model(self):
+        return 'robot-elevator-call-reply'
