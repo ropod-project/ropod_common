@@ -1,5 +1,6 @@
 from ropod.structs.area import Area, SubArea
 
+
 class Action(object):
     def __init__(self):
         self.id = ''
@@ -24,7 +25,7 @@ class Action(object):
     def to_dict(self):
         action_dict = dict()
 
-        action_dict['id'] = self.id
+        action_dict['_id'] = self.id
         action_dict["type"] = self.type
         action_dict["start_floor"] = self.start_floor
         action_dict["goal_floor"] = self.goal_floor
