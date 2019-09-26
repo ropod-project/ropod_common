@@ -267,7 +267,7 @@ namespace ftsm
                         std::string monitor_name = monitor_spec.substr(separator_idx+1);
 
                         auto status_doc = collection.find_one(bsoncxx::builder::stream::document{}
-                                                              << "id" << component_name
+                                                              << "component_id" << component_name
                                                               << bsoncxx::builder::stream::finalize);
 
                         // we ignore the component if there is no status document for it
@@ -275,7 +275,7 @@ namespace ftsm
 
                         auto document_view = (*status_doc).view();
 
-                        for (auto monitor_data : document_view["monitor_status"].get_array().value)
+                        for (auto monitor_data : document_view["modes"].get_array().value)
                         {
                             std::string current_monitor_name = std::string(monitor_data["monitorName"].get_utf8().value);
                             if (monitor_name != current_monitor_name)

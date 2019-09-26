@@ -167,8 +167,8 @@ class FTSMBase(FTSM):
                             self.depend_statuses[monitor_type][depend_comp] = {}
 
                         component_name, monitor_name = monitor_specs.split('/')
-                        status_doc = collection.find_one({'id': component_name})
-                        for monitor_data in status_doc['monitor_status']:
+                        status_doc = collection.find_one({'component_id': component_name})
+                        for monitor_data in status_doc['modes']:
                             if monitor_name != monitor_data['monitorName']:
                                 continue
 
