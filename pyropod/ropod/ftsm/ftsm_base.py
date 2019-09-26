@@ -186,6 +186,7 @@ class FTSMBase(FTSM):
                                        {'component_name': self.name,
                                         'state': self.current_state},
                                        upsert=True)
+                time.sleep(0.1)
             except pm.errors.OperationFailure as exc:
                 print('[ftms_base, write_sm_state] {0}'.format(exc))
 
