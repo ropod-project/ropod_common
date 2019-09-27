@@ -216,6 +216,20 @@ class FTSMBase(FTSM):
             time.sleep(0.1)
         self.setup_ros()
 
+    def shutdown_action_server(self, server):
+        '''Stops the action server, and unregisters all its publishers and subscribers.
+
+        Keyword arguments:
+        server: actionlib.SimpleActionServer -- the server to shutdown
+
+        '''
+        server.action_server.started = False
+        server.action_server.status_pub.unregister()
+        server.action_server.goal_sub.unregister()
+        server.action_server.cancel_sub.unregister()
+        server.action_server.result_pub.unregister()
+        server.action_server.feedback_pub.unregister()
+
     def __get_component_dependencies(self, component_name):
         '''Returns a list of components that the given component is dependent on,
         such that the dependencies are read from the robot store database.
