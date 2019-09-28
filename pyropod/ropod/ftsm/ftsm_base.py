@@ -230,6 +230,19 @@ class FTSMBase(FTSM):
         server.action_server.result_pub.unregister()
         server.action_server.feedback_pub.unregister()
 
+    def shutdown_action_client(self, client):
+        '''Unregisters all publishers and subscribers from the client.
+
+        Keyword arguments:
+        client: actionlib.SimpleActionClient -- the client to shutdown
+
+        '''
+        client.action_client.pub_goal.unregister()
+        client.action_client.pub_cancel.unregister()
+        client.action_client.status_sub.unregister()
+        client.action_client.result_sub.unregister()
+        client.action_client.feedback_sub.unregister()
+
     def __get_component_dependencies(self, component_name):
         '''Returns a list of components that the given component is dependent on,
         such that the dependencies are read from the robot store database.
