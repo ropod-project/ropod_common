@@ -53,40 +53,47 @@ namespace ftsm
         this->robot_store_sm_state_collection = robot_store_sm_state_collection;
         this->debug = debug;
 
-        auto spec_dependencies = this->getComponentDependencies(name);
-        if (this->dependencies != spec_dependencies)
+        if (!this->debug)
         {
-            std::string exc_msg = "[" + this->name + "] The component dependencies do not match" +
-                                  " the dependencies in the specification; expected " +
-                                  formatStrList(spec_dependencies);
-            throw exc_msg;
-        }
-
-        auto spec_dependency_monitors = this->getDependencyMonitors(name);
-        if (this->dependency_monitors != spec_dependency_monitors)
-        {
-            std::string exc_msg = "[" + this->name + "] The dependency monitors do not match" +
-                                  " the monitors in the specification " +
-                                  formatStrMap(spec_dependency_monitors);
-            throw exc_msg;
-        }
-
-        for (auto monitor_data : this->dependency_monitors)
-        {
-            std::string monitor_type = monitor_data.first;
-            std::map<std::string, std::string> monitors = monitor_data.second;
-            this->depend_statuses[monitor_type] = std::map<std::string, std::map<std::string, std::string>>();
-            for (auto monitor_desc : monitors)
+            auto spec_dependencies = this->getComponentDependencies(name);
+            if (this->dependencies != spec_dependencies)
             {
-                std::string depend_comp = monitor_desc.first;
-                std::string monitor_spec = monitor_desc.second;
-                this->depend_statuses[monitor_type][depend_comp] = std::map<std::string, std::string>();
-                this->depend_statuses[monitor_type][depend_comp][monitor_spec] = "";
+                std::string exc_msg = "[" + this->name + "] The component dependencies do not match" +
+                                      " the dependencies in the specification; expected " +
+                                      formatStrList(spec_dependencies);
+                throw exc_msg;
             }
-        }
 
-        this->depend_status_thread = std::thread(&FTSMBase::getDependencyStatuses, this);
-        this->sm_state_thread = std::thread(&FTSMBase::writeSMState, this);
+            auto spec_dependency_monitors = this->getDependencyMonitors(name);
+            if (this->dependency_monitors != spec_dependency_monitors)
+            {
+                std::string exc_msg = "[" + this->name + "] The dependency monitors do not match" +
+                                      " the monitors in the specification " +
+                                      formatStrMap(spec_dependency_monitors);
+                throw exc_msg;
+            }
+
+            for (auto monitor_data : this->dependency_monitors)
+            {
+                std::string monitor_type = monitor_data.first;
+                std::map<std::string, std::string> monitors = monitor_data.second;
+                this->depend_statuses[monitor_type] = std::map<std::string, std::map<std::string, std::string>>();
+                for (auto monitor_desc : monitors)
+                {
+                    std::string depend_comp = monitor_desc.first;
+                    std::string monitor_spec = monitor_desc.second;
+                    this->depend_statuses[monitor_type][depend_comp] = std::map<std::string, std::string>();
+                    this->depend_statuses[monitor_type][depend_comp][monitor_spec] = "";
+                }
+            }
+
+            this->depend_status_thread = std::thread(&FTSMBase::getDependencyStatuses, this);
+            this->sm_state_thread = std::thread(&FTSMBase::writeSMState, this);
+        }
+        else
+        {
+            std::cout << "[ftsm_base] Running " << this->name <<  " in debug mode; component monitoring not initialised" << std::endl;
+        }
     }
 
     std::string FTSMBase::init()
