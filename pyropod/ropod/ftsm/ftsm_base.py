@@ -25,7 +25,8 @@ class FTSMBase(FTSM):
                  robot_store_db_port=27017,
                  robot_store_component_collection='components',
                  robot_store_status_collection='status',
-                 robot_store_sm_state_collection='component_sm_states'):
+                 robot_store_sm_state_collection='component_sm_states',
+                 debug=False):
         if not dependencies:
             dependencies = []
 
@@ -43,28 +44,31 @@ class FTSMBase(FTSM):
 
         # we check whether the dependencies match the dependencies in the specification
         # and raise an AssertionError if they don't
-        spec_dependencies = self.__get_component_dependencies(name)
-        if self.dependencies != spec_dependencies:
-            raise AssertionError('''[{0}] The component dependencies do not match the
-                                 dependencies in the specification; expected {1}''' \
-                                 .format(self.name, spec_dependencies))
+        if not debug:
+            spec_dependencies = self.__get_component_dependencies(name)
+            if self.dependencies != spec_dependencies:
+                raise AssertionError('''[{0}] The component dependencies do not match the
+                                     dependencies in the specification; expected {1}''' \
+                                     .format(self.name, spec_dependencies))
 
-        # we check whether the dependency monitors match the ones in the specification
-        # and raise an AssertionError if they don't
-        spec_dependency_monitors = self.__get_dependency_monitors(name)
-        if self.dependency_monitors != spec_dependency_monitors:
-            raise AssertionError('''[{0}] The dependency monitors do not match the
-                                 monitors in the specification; expected {1}''' \
-                                 .format(self.name, spec_dependency_monitors))
+            # we check whether the dependency monitors match the ones in the specification
+            # and raise an AssertionError if they don't
+            spec_dependency_monitors = self.__get_dependency_monitors(name)
+            if self.dependency_monitors != spec_dependency_monitors:
+                raise AssertionError('''[{0}] The dependency monitors do not match the
+                                     monitors in the specification; expected {1}''' \
+                                     .format(self.name, spec_dependency_monitors))
 
-        self.depend_statuses = {}
-        self.depend_status_thread = threading.Thread(target=self.get_dependency_statuses)
-        self.depend_status_thread.daemon = True
-        self.depend_status_thread.start()
+            self.depend_statuses = {}
+            self.depend_status_thread = threading.Thread(target=self.get_dependency_statuses)
+            self.depend_status_thread.daemon = True
+            self.depend_status_thread.start()
 
-        self.sm_state_thread = threading.Thread(target=self.write_sm_state)
-        self.sm_state_thread.daemon = True
-        self.sm_state_thread.start()
+            self.sm_state_thread = threading.Thread(target=self.write_sm_state)
+            self.sm_state_thread.daemon = True
+            self.sm_state_thread.start()
+        else:
+            print('[ftsm_base] Running {0} in debug mode; component monitoring not initialised'.format(self.name))
 
     def init(self):
         '''Method for component initialisation; returns FTSMTransitions.INITIALISED by default
