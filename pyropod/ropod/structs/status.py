@@ -1,57 +1,50 @@
-from ropod.structs.area import Area
-
-SUCCESS = 0
-FAILED = 1
-TERMINATED = 2
-ONGOING = 3
-UNALLOCATED = 10
-ALLOCATED = 15
-COMPLETED = 20
+import copy
+import datetime
 
 
-class RobotStatus(object):
-    def __init__(self):
-        self.robot_id = ''
-        self.current_location = Area()
-        self.current_operation = ''
-        self.status = ''
-        self.available = False
-        self.battery_status = -1.
+class AvailabilityStatus:
+    BUSY = 0  # Executing a task
+    CHARGING = 1  # Recharging its battery
+    IDLE = 2  # Available (no task assigned at the moment)
+    FAILURE = 3  # Critical failure, robot can't recover
+    DEFECTIVE = 4  # Robot has a failure, but still functional. Requires maintenance
+    NO_COMMUNICATION = 5  # FMS has lost communication with the robot for more than 15 minutes?
 
-    def to_dict(self):
-        status_dict = dict()
-        status_dict['robotId'] = self.robot_id
-        status_dict['currentOperation'] = self.current_operation
-        status_dict['currentLocation'] = self.current_location.to_dict()
-        status_dict['status'] = self.status
-        status_dict['available'] = self.available
-        status_dict['batteryStatus'] = self.battery_status
 
-        return status_dict
+class ComponentStatus:
+    OPTIMAL = 1
+    SUBOPTIMAL = 2
+    DEGRADED = 3
+    CRITICAL = 4
+    FAILED = 5
+    NONRESPONSIVE = -1
 
-    @staticmethod
-    def from_dict(status_dict):
-        status = RobotStatus()
-        status.robot_id = status_dict['robotId']
-        status.current_operation = status_dict['currentOperation']
-        status.current_location = Area.from_dict(status_dict['currentLocation'])
-        status.status = status_dict['status']
-        status.available = status_dict['available']
-        status.battery_status = status_dict['batteryStatus']
 
-        return status
+class ActionStatus:
+    PLANNED = 11
+    ONGOING = 5
+    COMPLETED = 6
+    FAILED = 8  # Execution failed
 
 
 class TaskStatus(object):
     UNALLOCATED = 1
     ALLOCATED = 2
-    ONGOING = 3
-    COMPLETED = 4
-    TERMINATED = 5
+    PLANNED = 11
+    PLANNING_FAILED = 12
+    SCHEDULED = 3  # Task is ready to be dispatched
+    DISPATCHED = 4  # The task has been sent to the robot
+    ONGOING = 5
+    COMPLETED = 6
+    ABORTED = 7  # Aborted by the system, not by the user
+    FAILED = 8   # Execution failed
+    CANCELED = 9  # Canceled before execution started
+    PREEMPTED = 10  # Canceled during execution
 
-    def __init__(self):
-        self.task_id = ''
-        self.status = ''
+    def __init__(self, task_id):
+        self.task_id = task_id
+        self.status = self.UNALLOCATED
+        self.delayed = False
         self.current_robot_action = dict()
         self.completed_robot_actions = dict()
         self.estimated_task_duration = -1.
@@ -60,17 +53,34 @@ class TaskStatus(object):
         task_dict = dict()
         task_dict['task_id'] = self.task_id
         task_dict['status'] = self.status
-        task_dict['estimated_task_duration'] = self.estimated_task_duration
-        task_dict['current_robot_actions'] = self.current_robot_action
-        task_dict['completed_robot_actions'] = self.completed_robot_actions
+        task_dict['delayed'] = self.delayed
+
+        if isinstance(self.estimated_task_duration, datetime.timedelta):
+            task_dict['estimated_task_duration'] = self.estimated_task_duration.total_seconds() / 60 # Turn duration into minutes
+        else:
+            task_dict['estimated_task_duration'] = self.estimated_task_duration
+
+        task_dict['current_robot_actions'] = copy.copy(self.current_robot_action)
+        task_dict['completed_robot_actions'] = copy.copy(self.completed_robot_actions)
         return task_dict
 
     @staticmethod
     def from_dict(status_dict):
-        status = TaskStatus()
-        status.task_id = status_dict['task_id']
+        status = TaskStatus(status_dict['task_id'])
         status.status = status_dict['status']
-        status.estimated_task_duration = status_dict['estimated_task_duration']
+        status.delayed = status_dict['delayed']
+        status.estimated_task_duration = datetime.timedelta(minutes=status_dict['estimated_task_duration'])
         status.current_robot_action = status_dict['current_robot_actions']
         status.completed_robot_actions = status_dict['completed_robot_actions']
         return status
+
+    @staticmethod
+    def to_csv(status_dict):
+        """ Prepares dict to be written to a csv
+        :return: dict
+        """
+        # The dictionary is already flat and ready to be exported
+        return status_dict
+
+    def set_current_robot_action(self, robot_id, action):
+        self.current_robot_action[robot_id] = action

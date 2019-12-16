@@ -24,7 +24,9 @@ class FTSMBase(FTSM):
                  robot_store_db_name='robot_store',
                  robot_store_db_port=27017,
                  robot_store_component_collection='components',
-                 robot_store_status_collection='status'):
+                 robot_store_status_collection='status',
+                 robot_store_sm_state_collection='component_sm_states',
+                 debug=False):
         if not dependencies:
             dependencies = []
 
@@ -38,27 +40,35 @@ class FTSMBase(FTSM):
         self.db_port = robot_store_db_port
         self.component_collection_name = robot_store_component_collection
         self.status_collection_name = robot_store_status_collection
+        self.sm_state_collection_name = robot_store_sm_state_collection
 
         # we check whether the dependencies match the dependencies in the specification
         # and raise an AssertionError if they don't
-        spec_dependencies = self.__get_component_dependencies(name)
-        if self.dependencies != spec_dependencies:
-            raise AssertionError('''[{0}] The component dependencies do not match the
-                                 dependencies in the specification; expected {1}''' \
-                                 .format(self.name, spec_dependencies))
+        if not debug:
+            spec_dependencies = self.__get_component_dependencies(name)
+            if self.dependencies != spec_dependencies:
+                raise AssertionError('''[{0}] The component dependencies do not match the
+                                     dependencies in the specification; expected {1}''' \
+                                     .format(self.name, spec_dependencies))
 
-        # we check whether the dependency monitors match the ones in the specification
-        # and raise an AssertionError if they don't
-        spec_dependency_monitors = self.__get_dependency_monitors(name)
-        if self.dependency_monitors != spec_dependency_monitors:
-            raise AssertionError('''[{0}] The dependency monitors do not match the
-                                 monitors in the specification; expected {1}''' \
-                                 .format(self.name, spec_dependency_monitors))
+            # we check whether the dependency monitors match the ones in the specification
+            # and raise an AssertionError if they don't
+            spec_dependency_monitors = self.__get_dependency_monitors(name)
+            if self.dependency_monitors != spec_dependency_monitors:
+                raise AssertionError('''[{0}] The dependency monitors do not match the
+                                     monitors in the specification; expected {1}''' \
+                                     .format(self.name, spec_dependency_monitors))
 
-        self.depend_statuses = {}
-        self.depend_status_thread = threading.Thread(target=self.get_dependency_statuses)
-        self.depend_status_thread.daemon = True
-        self.depend_status_thread.start()
+            self.depend_statuses = {}
+            self.depend_status_thread = threading.Thread(target=self.get_dependency_statuses)
+            self.depend_status_thread.daemon = True
+            self.depend_status_thread.start()
+
+            self.sm_state_thread = threading.Thread(target=self.write_sm_state)
+            self.sm_state_thread.daemon = True
+            self.sm_state_thread.start()
+        else:
+            print('[ftsm_base] Running {0} in debug mode; component monitoring not initialised'.format(self.name))
 
     def init(self):
         '''Method for component initialisation; returns FTSMTransitions.INITIALISED by default
@@ -95,6 +105,19 @@ class FTSMBase(FTSM):
         '''Processes the statuses of the component dependencies and returns
         a state transition string from FTSMTransitions (or None if no transition
         needs to take place.) The default implementation simply returns None.
+        '''
+        return None
+
+    def setup_ros(self):
+        '''For ROS components, performs any necessary setup steps (initialising
+        a node, registering publishers/subscribers/services/action servers or clients).
+        '''
+        return None
+
+    def tear_down_ros(self):
+        '''For ROS components, performs any necessary cleanup steps when the ROS
+        master dies so that the component can recover itself when the master
+        comes back up (e.g. unregistering services).
         '''
         return None
 
@@ -148,8 +171,8 @@ class FTSMBase(FTSM):
                             self.depend_statuses[monitor_type][depend_comp] = {}
 
                         component_name, monitor_name = monitor_specs.split('/')
-                        status_doc = collection.find_one({'id': component_name})
-                        for monitor_data in status_doc['monitor_status']:
+                        status_doc = collection.find_one({'component_id': component_name})
+                        for monitor_data in status_doc['modes']:
                             if monitor_name != monitor_data['monitorName']:
                                 continue
 
@@ -157,7 +180,72 @@ class FTSMBase(FTSM):
                                 monitor_data['healthStatus']
                 time.sleep(0.5)
             except pm.errors.OperationFailure as exc:
-                print('[ftms_base] {0}'.format(exc))
+                print('[ftms_base, get_dependency_statuses] {0}'.format(exc))
+
+    def write_sm_state(self):
+        while self.current_state != FTSMStates.STOPPED:
+            try:
+                collection = self.__get_collection(self.sm_state_collection_name)
+                collection.replace_one({'component_name': self.name},
+                                       {'component_name': self.name,
+                                        'state': self.current_state},
+                                       upsert=True)
+                time.sleep(0.1)
+            except pm.errors.OperationFailure as exc:
+                print('[ftms_base, write_sm_state] {0}'.format(exc))
+
+    def recover_from_possible_dead_rosmaster(self):
+        '''For ROS components that have "roscore" listed as a **heartbeat** dependency,
+        recovers from a dead ROS master in case the master is dead.
+        self.tear_down_ros and self.setup_ros should be overridden for
+        the recovery to be actually performed.
+        '''
+        if 'roscore' not in self.dependencies or DependMonitorTypes.HEARTBEAT not in self.depend_statuses:
+            return
+
+        master_available = self.depend_statuses[DependMonitorTypes.HEARTBEAT]\
+                                               ['roscore']\
+                                               ['ros/ros_master_monitor']\
+                                               ['status']
+        if master_available:
+            return
+
+        self.tear_down_ros()
+        print('[{0}] Waiting for ROS master'.format(self.name))
+        while not master_available:
+            master_available = self.depend_statuses[DependMonitorTypes.HEARTBEAT]\
+                                                   ['roscore']\
+                                                   ['ros/ros_master_monitor']\
+                                                   ['status']
+            time.sleep(0.1)
+        self.setup_ros()
+
+    def shutdown_action_server(self, server):
+        '''Stops the action server, and unregisters all its publishers and subscribers.
+
+        Keyword arguments:
+        server: actionlib.SimpleActionServer -- the server to shutdown
+
+        '''
+        server.action_server.started = False
+        server.action_server.status_pub.unregister()
+        server.action_server.goal_sub.unregister()
+        server.action_server.cancel_sub.unregister()
+        server.action_server.result_pub.unregister()
+        server.action_server.feedback_pub.unregister()
+
+    def shutdown_action_client(self, client):
+        '''Unregisters all publishers and subscribers from the client.
+
+        Keyword arguments:
+        client: actionlib.SimpleActionClient -- the client to shutdown
+
+        '''
+        client.action_client.pub_goal.unregister()
+        client.action_client.pub_cancel.unregister()
+        client.action_client.status_sub.unregister()
+        client.action_client.result_sub.unregister()
+        client.action_client.feedback_sub.unregister()
 
     def __get_component_dependencies(self, component_name):
         '''Returns a list of components that the given component is dependent on,
