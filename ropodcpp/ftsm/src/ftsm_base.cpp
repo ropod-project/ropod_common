@@ -319,7 +319,11 @@ namespace ftsm
                 auto status_doc = collection.find_one(bsoncxx::builder::stream::document{}
                                                       << "component_name" << this->name
                                                       << bsoncxx::builder::stream::finalize);
-                if (!status_doc) continue;
+                if (!status_doc)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                    continue;
+                }
 
                 collection.replace_one((*status_doc).view(),
                                        bsoncxx::builder::stream::document{}
