@@ -80,14 +80,14 @@ class TimeStamp:
         Returns:
             timedelta object or float number depending on the specified resolution.
         """
-        _res = {'hours': 3600, 'minutes': 60}.get(resolution)
+        _res = {'hours': 3600, 'minutes': 60, 'seconds': 1}.get(resolution)
 
         if isinstance(other, TimeStamp):
             result = self._time - other._time
         else:
             raise Exception("Object must be of TimeStamp type")
 
-        if resolution in ['hours', 'minutes']:
+        if resolution in ['hours', 'minutes', 'seconds']:
             return result.total_seconds() / _res
         else:
             return result
