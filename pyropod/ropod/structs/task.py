@@ -39,8 +39,8 @@ class TaskRequest(object):
         request_dict['pickupLocationLevel'] = self.pickup_pose.floor_number
         request_dict['deliveryLocation'] = self.delivery_pose.name
         request_dict['deliveryLocationLevel'] = self.delivery_pose.floor_number
-        request_dict['earliestPickupTime'] = self.earliest_start_time.to_str()
-        request_dict['latestPickupTime'] = self.latest_start_time.to_str()
+        request_dict['earliestPickupTime'] = self.earliest_pickup_time.to_str()
+        request_dict['latestPickupTime'] = self.latest_pickup_time.to_str()
         request_dict['userId'] = self.user_id
         request_dict['loadType'] = self.load_type
         request_dict['loadId'] = self.load_id

@@ -21,23 +21,23 @@ class ComponentStatus:
 
 
 class ActionStatus:
-    PLANNED = 11
-    ONGOING = 5
-    COMPLETED = 6
-    FAILED = 8  # Execution failed
+    PLANNED = 13
+    ONGOING = 6
+    COMPLETED = 2
+    FAILED = 1  # Execution failed
 
 
 class TaskStatus(object):
-    UNALLOCATED = 1
-    ALLOCATED = 2
-    PLANNED = 11
-    PLANNING_FAILED = 12
-    SCHEDULED = 3  # Task is ready to be dispatched
-    DISPATCHED = 4  # The task has been sent to the robot
-    ONGOING = 5
-    COMPLETED = 6
-    ABORTED = 7  # Aborted by the system, not by the user
-    FAILED = 8   # Execution failed
+    UNALLOCATED = 11
+    ALLOCATED = 12
+    PLANNED = 13
+    PLANNING_FAILED = 14
+    SCHEDULED = 15  # Task is ready to be dispatched
+    DISPATCHED = 16  # The task has been sent to the robot
+    ONGOING = 6
+    COMPLETED = 2
+    ABORTED = 8  # Aborted by the system, not by the user
+    FAILED = 1   # Execution failed
     CANCELED = 9  # Canceled before execution started
     PREEMPTED = 10  # Canceled during execution
 
