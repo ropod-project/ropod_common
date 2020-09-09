@@ -5,7 +5,7 @@ import ast
 import logging
 from uuid import UUID
 from datetime import timedelta, datetime
-from ropod.utils.timestamp import TimeStamp as ts
+from ropod.utils.timestamp import TimeStamp
 from ropod.utils.uuid import generate_uuid
 
 from pyre_base.base_class import PyreBase
@@ -247,7 +247,7 @@ class RopodPyre(PyreBase):
         else:
             self.unacknowledged_msgs[msg_id] = dict()
             self.unacknowledged_msgs[msg_id]['retry_number'] = 0
-            current_ts = ts.get_time_stamp()
+            current_ts = TimeStamp().timestamp
             self.unacknowledged_msgs[msg_id]['first_attempt'] = current_ts
             self.unacknowledged_msgs[msg_id]['last_retry'] = current_ts
             self.unacknowledged_msgs[msg_id]['zyre_msg_type'] = zyre_msg_type
@@ -259,18 +259,18 @@ class RopodPyre(PyreBase):
             self.unacknowledged_msgs[msg_id]['msg_args']['msg'] = message
             self.unacknowledged_msgs[msg_id]['msg_args'].update(kwargs)
             deadline = timedelta(seconds=5 ** 5)
-            self.unacknowledged_msgs[msg_id]['reply_by'] = ts.get_time_stamp(deadline)
+            self.unacknowledged_msgs[msg_id]['reply_by'] = TimeStamp(deadline).timestamp
 
         # TODO This needs to be probably adapted by message type
         next_attempt = timedelta(seconds=5)
-        self.unacknowledged_msgs[msg_id]['next_retry'] = ts.get_time_stamp(next_attempt)
+        self.unacknowledged_msgs[msg_id]['next_retry'] = TimeStamp(next_attempt).timestamp
 
     def add_next_retry(self, msg_id):
         retry = self.unacknowledged_msgs[msg_id]['retry_number']
         timeout = 5 ** retry
         next_attempt = timedelta(seconds=timeout)
         self.unacknowledged_msgs[msg_id]['last_retry'] = self.unacknowledged_msgs[msg_id]['next_retry']
-        self.unacknowledged_msgs[msg_id]['next_retry'] = ts.get_time_stamp(next_attempt)
+        self.unacknowledged_msgs[msg_id]['next_retry'] = TimeStamp(next_attempt).timestamp
         self.unacknowledged_msgs[msg_id]['retry_number'] = retry + 1
 
     def check_unacknowledged_msgs(self, zyre_msg):
@@ -348,10 +348,12 @@ def main():
     logging.basicConfig(format="%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s",
                         level=logging.DEBUG)
 
-    node1 = RopodPyre('node1',
-                                ["TEST-GROUP"],
-                                ["TEST_MSG"],
-                                True, acknowledge=True)
+    ctx = zmq.Context()
+    node1 = RopodPyre({"node_name": "node1",
+                       "groups": ["TEST-GROUP"],
+                       "message_types": ["TEST_MSG"],
+                       "ctx": ctx},
+                      acknowledge=True)
     node1.start()
     msg_id = generate_uuid()
     msg = {'header':
@@ -362,14 +364,18 @@ def main():
     node1.shout(msg)
     time.sleep(6)
 
-    node2 = RopodPyre('node2',
-                                ["TEST-GROUP"],
-                                ["TEST_MSG"],
-                                False, acknowledge=True)
-    node3 = RopodPyre('node3',
-                                ["TEST-GROUP"],
-                                ["TEST_MSG"],
-                                False, acknowledge=True)
+    node2 = RopodPyre({"node_name": "node2",
+                       "groups": ["TEST-GROUP"],
+                       "message_types": ["TEST_MSG"],
+                       "ctx": ctx},
+                      acknowledge=True)
+
+    node3 = RopodPyre({"node_name": "node3",
+                       "groups": ["TEST-GROUP"],
+                       "message_types": ["TEST_MSG"],
+                       "ctx": ctx},
+                      acknowledge=True)
+
     node2.start()
     node3.start()
     time.sleep(6)
